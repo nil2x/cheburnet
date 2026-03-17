@@ -1,0 +1,16 @@
+services:
+  cheburnet:
+    image: cheburnet:latest
+    container_name: cheburnet
+    build: .
+    ports:
+      - 1080:1080
+    volumes:
+      - ./config.json:/usr/local/etc/cheburnet/config.json:ro
+      # - ./output.log:/var/log/cheburnet/output.log
+    restart: unless-stopped
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: 3

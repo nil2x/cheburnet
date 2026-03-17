@@ -1,0 +1,6 @@
+cheburnet
+config*.json
+!assets/config.json
+.vscode/
+bin/
+dist/
