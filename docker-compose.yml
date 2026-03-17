@@ -2,7 +2,11 @@ services:
   cheburnet:
     image: cheburnet:latest
     container_name: cheburnet
-    build: .
+    build:
+      context: .
+      args:
+        VERSION: ${VERSION}
+        COMMIT: ${COMMIT}
     ports:
       - 1080:1080
     volumes:

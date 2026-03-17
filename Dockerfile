@@ -6,8 +6,12 @@ COPY go.mod go.sum ./
 RUN go mod download && go mod verify
 COPY . .
 
-ARG TARGETOS TARGETARCH
-RUN CGO_ENABLED=0 GOOS=${TARGETOS} GOARCH=${TARGETARCH} go build -o /src/cheburnet .
+ARG TARGETOS TARGETARCH VERSION COMMIT
+RUN LDFLAGS="\
+    -X github.com/nil2x/cheburnet/internal/config.version=${VERSION} \
+    -X github.com/nil2x/cheburnet/internal/config.commit=${COMMIT}" && \
+    CGO_ENABLED=0 GOOS=${TARGETOS} GOARCH=${TARGETARCH} \
+    go build -ldflags "${LDFLAGS}" -o /src/cheburnet .
 
 FROM debian:13.2-slim
 
