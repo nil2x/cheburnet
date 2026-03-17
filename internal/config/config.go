@@ -97,33 +97,6 @@ type User struct {
 	AccessToken string `json:"accessToken"`
 }
 
-func defaultConfig() Config {
-	return Config{
-		Log: Log{
-			Level: 0,
-		},
-		Session: Session{
-			TimeoutMS: 30 * 1000,
-		},
-		Socks: Socks{
-			Address: Address{
-				Host: "127.0.0.1",
-				Port: 1080,
-			},
-			ForwardSize:       1 * 1024 * 1024,
-			ForwardIntervalMS: 500,
-		},
-		API: API{
-			TimeoutMS: 10 * 1000,
-		},
-		QR: QR{
-			ZBarPath:   "zbarimg",
-			ImageSize:  512,
-			ImageLevel: 1,
-		},
-	}
-}
-
 // Parse parses JSON file at the given path and returns parsed Config.
 // If the file not specifies some of the fields, then defaults will be used.
 func Parse(name string) (Config, error) {

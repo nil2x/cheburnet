@@ -26,3 +26,30 @@ func BuildInfo() string {
 
 	return fmt.Sprintf("%v %v %v/%v", v, c, runtime.GOOS, runtime.GOARCH)
 }
+
+func defaultConfig() Config {
+	return Config{
+		Log: Log{
+			Level: 0,
+		},
+		Session: Session{
+			TimeoutMS: 30 * 1000,
+		},
+		Socks: Socks{
+			Address: Address{
+				Host: "127.0.0.1",
+				Port: 1080,
+			},
+			ForwardSize:       1 * 1024 * 1024,
+			ForwardIntervalMS: 500,
+		},
+		API: API{
+			TimeoutMS: 10 * 1000,
+		},
+		QR: QR{
+			ZBarPath:   "zbarimg",
+			ImageSize:  512,
+			ImageLevel: 1,
+		},
+	}
+}
