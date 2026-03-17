@@ -15,7 +15,7 @@ import (
 	"github.com/nil2x/cheburnet/internal/transform"
 )
 
-const version = "1.0"
+const version = "1.1"
 
 // Run starts the program, waits its completion and exits with appropriate code.
 func Run() {

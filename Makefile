@@ -1,5 +1,5 @@
 NAME=cheburnet
-VERSION=1.0
+VERSION=1.1
 BIN_DIR=bin
 DIST_DIR=dist
 
