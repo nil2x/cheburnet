@@ -15,8 +15,6 @@ import (
 	"github.com/nil2x/cheburnet/internal/transform"
 )
 
-const version = "1.1"
-
 // Run starts the program, waits its completion and exits with appropriate code.
 func Run() {
 	ctx, cancel := context.WithCancel(context.Background())
@@ -50,7 +48,7 @@ func run(ctx context.Context, errs chan<- error) error {
 	flags := config.ParseFlags()
 
 	if flags.PrintVersion {
-		fmt.Fprintln(os.Stdout, version)
+		fmt.Fprintln(os.Stdout, config.BuildInfo())
 
 		return nil
 	}

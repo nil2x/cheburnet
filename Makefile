@@ -2,20 +2,24 @@ NAME=cheburnet
 VERSION=1.1
 BIN_DIR=bin
 DIST_DIR=dist
+COMMIT=$(shell git rev-parse --short HEAD)
+LDFLAGS=\
+	-X github.com/nil2x/cheburnet/internal/config.version=$(VERSION) \
+	-X github.com/nil2x/cheburnet/internal/config.commit=$(COMMIT)
 
 build:
 	@mkdir -p $(BIN_DIR)
-	go build -o $(BIN_DIR)/$(NAME) .
+	go build -ldflags "$(LDFLAGS)" -o $(BIN_DIR)/$(NAME) .
 
 bin:
 	@mkdir -p $(BIN_DIR)
-	GOOS=linux GOARCH=amd64 go build -o $(BIN_DIR)/$(NAME)-linux-amd64 .
-	GOOS=linux GOARCH=arm64 go build -o $(BIN_DIR)/$(NAME)-linux-arm64 .
-	GOOS=darwin GOARCH=amd64 go build -o $(BIN_DIR)/$(NAME)-darwin-amd64 .
-	GOOS=darwin GOARCH=arm64 go build -o $(BIN_DIR)/$(NAME)-darwin-arm64 .
-	GOOS=windows GOARCH=amd64 go build -o $(BIN_DIR)/$(NAME)-windows-amd64.exe .
-	GOOS=windows GOARCH=arm64 go build -o $(BIN_DIR)/$(NAME)-windows-arm64.exe .
-	GOOS=android GOARCH=arm64 go build -o $(BIN_DIR)/$(NAME)-android-arm64 .
+	GOOS=linux GOARCH=amd64 go build -ldflags "$(LDFLAGS)" -o $(BIN_DIR)/$(NAME)-linux-amd64 .
+	GOOS=linux GOARCH=arm64 go build -ldflags "$(LDFLAGS)" -o $(BIN_DIR)/$(NAME)-linux-arm64 .
+	GOOS=darwin GOARCH=amd64 go build -ldflags "$(LDFLAGS)" -o $(BIN_DIR)/$(NAME)-darwin-amd64 .
+	GOOS=darwin GOARCH=arm64 go build -ldflags "$(LDFLAGS)" -o $(BIN_DIR)/$(NAME)-darwin-arm64 .
+	GOOS=windows GOARCH=amd64 go build -ldflags "$(LDFLAGS)" -o $(BIN_DIR)/$(NAME)-windows-amd64.exe .
+	GOOS=windows GOARCH=arm64 go build -ldflags "$(LDFLAGS)" -o $(BIN_DIR)/$(NAME)-windows-arm64.exe .
+	GOOS=android GOARCH=arm64 go build -ldflags "$(LDFLAGS)" -o $(BIN_DIR)/$(NAME)-android-arm64 .
 
 dist: bin
 	@rm -rf $(DIST_DIR)/tmp
