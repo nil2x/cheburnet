@@ -40,7 +40,7 @@ func defaultConfig() Config {
 				Host: "127.0.0.1",
 				Port: 1080,
 			},
-			ReadSize:          4 * 1024,
+			ReadSize:          8 * 1024,
 			ReadTimeoutMS:     0,
 			WriteTimeoutMS:    10 * 1000,
 			ForwardSize:       1 * 1024 * 1024,
