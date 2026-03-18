@@ -108,9 +108,31 @@ type User struct {
 	AccessToken string `json:"accessToken"`
 }
 
-// Parse parses JSON file at the given path and returns parsed Config.
-// If the file not specifies some of the fields, then defaults will be used.
+// Parse parses config values from all supported places and merges it.
+// If some of the config fields is not specified, then default is used.
 func Parse(name string) (Config, error) {
+	cfg, err := ParseJSON(name)
+
+	if err != nil {
+		return Config{}, fmt.Errorf("json: %v", err)
+	}
+
+	env, err := ParseEnv()
+
+	if err != nil {
+		return Config{}, fmt.Errorf("env: %v", err)
+	}
+
+	if env.SocksPort != 0 {
+		cfg.Socks.Port = env.SocksPort
+	}
+
+	return cfg, nil
+}
+
+// ParseJSON parses JSON file at the given path and returns parsed Config.
+// If the file not specifies some of the fields, then defaults will be used.
+func ParseJSON(name string) (Config, error) {
 	data, err := os.ReadFile(name)
 
 	if err != nil {

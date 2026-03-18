@@ -1,6 +1,10 @@
 package config
 
-import "flag"
+import (
+	"flag"
+	"os"
+	"strconv"
+)
 
 type Flags struct {
 	ConfigPath     string
@@ -34,4 +38,25 @@ func ParseFlags() Flags {
 	flag.Parse()
 
 	return flags
+}
+
+type Env struct {
+	SocksPort uint16
+}
+
+// ParseEnv parses and returns environment variables.
+func ParseEnv() (Env, error) {
+	env := Env{}
+
+	if port := os.Getenv("SOCKS_PORT"); port != "" {
+		p, err := strconv.Atoi(port)
+
+		if err != nil {
+			return Env{}, err
+		}
+
+		env.SocksPort = uint16(p)
+	}
+
+	return env, nil
 }
