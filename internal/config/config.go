@@ -32,6 +32,10 @@ func Parse(file string) (Config, error) {
 		return Config{}, fmt.Errorf("env: %v", err)
 	}
 
+	if env.SocksHost != "" {
+		cfg.Socks.Host = env.SocksHost
+	}
+
 	if env.SocksPort != 0 {
 		cfg.Socks.Port = env.SocksPort
 	}
@@ -88,7 +92,9 @@ func parseJSON(name string) (Config, error) {
 }
 
 func parseEnv() (Env, error) {
-	env := Env{}
+	env := Env{
+		SocksHost: os.Getenv("SOCKS_HOST"),
+	}
 
 	if port := os.Getenv("SOCKS_PORT"); port != "" {
 		p, err := strconv.Atoi(port)
