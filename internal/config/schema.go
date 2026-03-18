@@ -42,8 +42,10 @@ func (cfg Session) Timeout() time.Duration {
 
 type Socks struct {
 	Address
+	AcceptRate        int `json:"acceptRate"`
 	ReadSize          int `json:"readSize"`
 	ReadTimeoutMS     int `json:"readTimeout"`
+	ReadRate          int `json:"readRate"`
 	WriteTimeoutMS    int `json:"writeTimeout"`
 	ForwardSize       int `json:"forwardSize"`
 	ForwardIntervalMS int `json:"forwardInterval"`

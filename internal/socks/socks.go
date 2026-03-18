@@ -17,6 +17,7 @@ import (
 	"github.com/nil2x/cheburnet/internal/datagram"
 	"github.com/nil2x/cheburnet/internal/session"
 	"github.com/nil2x/cheburnet/internal/transform"
+	"golang.org/x/time/rate"
 )
 
 type socksStage int
@@ -55,6 +56,12 @@ func Listen(ctx context.Context, cfg config.Config, vkC *api.VKClient, storageC 
 		ln.Close()
 	}()
 
+	var limiter *rate.Limiter
+
+	if cfg.Socks.AcceptRate > 0 {
+		limiter = rate.NewLimiter(rate.Limit(cfg.Socks.AcceptRate), cfg.Socks.AcceptRate)
+	}
+
 	slog.Info("socks: listening", "addr", addr)
 
 	for {
@@ -62,6 +69,12 @@ func Listen(ctx context.Context, cfg config.Config, vkC *api.VKClient, storageC 
 
 		if err != nil {
 			slog.Error("socks: accept", "err", err)
+			continue
+		}
+
+		if limiter != nil && !limiter.Allow() {
+			slog.Debug("socks: accept: rate limit")
+			conn.Close()
 			continue
 		}
 
@@ -148,6 +161,23 @@ func read(cfg config.Config, ses *session.Session, peer net.Conn, stage socksSta
 	timeout := cfg.Socks.ReadTimeout()
 	temp := make([]byte, cfg.Socks.ReadSize)
 
+	var limiter *rate.Limiter
+	var limiterCtx context.Context
+
+	if cfg.Socks.ReadRate > 0 {
+		var limiterCancel context.CancelFunc
+
+		limiter = rate.NewLimiter(rate.Limit(cfg.Socks.ReadRate), cfg.Socks.ReadRate)
+		limiterCtx, limiterCancel = context.WithCancel(context.Background())
+
+		defer limiterCancel()
+
+		go func() {
+			<-ses.OnClose
+			limiterCancel()
+		}()
+	}
+
 	for {
 		var deadline time.Time
 
@@ -227,6 +257,12 @@ func read(cfg config.Config, ses *session.Session, peer net.Conn, stage socksSta
 
 		if readErr != nil {
 			return readErr
+		}
+
+		if limiter != nil && stage == stageForward {
+			if err := limiter.WaitN(limiterCtx, readN); err != nil {
+				return err
+			}
 		}
 	}
 }
