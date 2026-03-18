@@ -48,8 +48,19 @@ func (cfg Session) Timeout() time.Duration {
 
 type Socks struct {
 	Address
+	ReadSize          int `json:"readSize"`
+	ReadTimeoutMS     int `json:"readTimeout"`
+	WriteTimeoutMS    int `json:"writeTimeout"`
 	ForwardSize       int `json:"forwardSize"`
 	ForwardIntervalMS int `json:"forwardInterval"`
+}
+
+func (cfg Socks) ReadTimeout() time.Duration {
+	return time.Duration(cfg.ReadTimeoutMS) * time.Millisecond
+}
+
+func (cfg Socks) WriteTimeout() time.Duration {
+	return time.Duration(cfg.WriteTimeoutMS) * time.Millisecond
 }
 
 func (cfg Socks) ForwardInterval() time.Duration {
