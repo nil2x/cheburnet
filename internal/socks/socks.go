@@ -194,7 +194,7 @@ func read(cfg config.Config, ses *session.Session, peer net.Conn, stage socksSta
 				err = handleConnectSession(ses, remote, cfg.Session.SecretKey)
 
 				if err == nil {
-					slog.Info("socks: forwarding", "peer", addr, "ses", ses, "addr", remote)
+					slog.Info("socks: forwarding", "peer", addr, "ses", ses, "remote", remote)
 					stage = stageForward
 				}
 			case stageForward:
@@ -420,8 +420,8 @@ func handleConnectV5(in []byte) (config.Address, []byte, error) {
 	return dst, out, nil
 }
 
-func handleConnectSession(ses *session.Session, addr config.Address, secretKey []byte) error {
-	pld := datagram.PayloadConnect(addr)
+func handleConnectSession(ses *session.Session, remote config.Address, secretKey []byte) error {
+	pld := datagram.PayloadConnect(remote)
 	data := pld.Marshal()
 	encrypted, err := transform.Encrypt(data, secretKey)
 
