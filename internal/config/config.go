@@ -4,120 +4,29 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"flag"
 	"fmt"
 	"log/slog"
 	"net"
 	"os"
+	"strconv"
 	"strings"
 	"time"
 )
 
-// Config holds configuration of various parts of the program.
-// See README for fields description.
-type Config struct {
-	Log     Log     `json:"log"`
-	DNS     DNS     `json:"dns"`
-	Session Session `json:"session"`
-	Socks   Socks   `json:"socks"`
-	API     API     `json:"api"`
-	QR      QR      `json:"qr"`
-	Clubs   []Club  `json:"clubs"`
-	Users   []User  `json:"users"`
-}
-
-type Log struct {
-	Level   int    `json:"level"`
-	Output  string `json:"output"`
-	Payload bool   `json:"payload"`
-}
-
-type DNS struct {
-	Address
-	Provider string `json:"provider"`
-}
-
-type Session struct {
-	TimeoutMS int    `json:"timeout"`
-	Secret    string `json:"secret"`
-	SecretKey []byte `json:"-"`
-}
-
-func (cfg Session) Timeout() time.Duration {
-	return time.Duration(cfg.TimeoutMS) * time.Millisecond
-}
-
-type Socks struct {
-	Address
-	ReadSize          int `json:"readSize"`
-	ReadTimeoutMS     int `json:"readTimeout"`
-	WriteTimeoutMS    int `json:"writeTimeout"`
-	ForwardSize       int `json:"forwardSize"`
-	ForwardIntervalMS int `json:"forwardInterval"`
-}
-
-func (cfg Socks) ReadTimeout() time.Duration {
-	return time.Duration(cfg.ReadTimeoutMS) * time.Millisecond
-}
-
-func (cfg Socks) WriteTimeout() time.Duration {
-	return time.Duration(cfg.WriteTimeoutMS) * time.Millisecond
-}
-
-func (cfg Socks) ForwardInterval() time.Duration {
-	return time.Duration(cfg.ForwardIntervalMS) * time.Millisecond
-}
-
-type Address struct {
-	Host string `json:"host"`
-	Port uint16 `json:"port"`
-}
-
-func (a Address) String() string {
-	return net.JoinHostPort(a.Host, fmt.Sprint(a.Port))
-}
-
-type API struct {
-	TimeoutMS   int  `json:"-"`
-	Unathorized bool `json:"unathorized"`
-}
-
-func (cfg API) Timeout() time.Duration {
-	return time.Duration(cfg.TimeoutMS) * time.Millisecond
-}
-
-type QR struct {
-	ZBarPath   string `json:"zbarPath"`
-	ImageSize  int    `json:"-"`
-	ImageLevel int    `json:"-"`
-	SaveDir    string `json:"saveDir"`
-}
-
-type Club struct {
-	Name        string `json:"name"`
-	ID          string `json:"id"`
-	AccessToken string `json:"accessToken"`
-	AlbumID     string `json:"albumID"`
-	PhotoID     string `json:"photoID"`
-	VideoID     string `json:"videoID"`
-	MarketID    string `json:"marketID"`
-}
-
-type User struct {
-	Name        string `json:"name"`
-	ID          string `json:"id"`
-	AccessToken string `json:"accessToken"`
-}
-
 // Parse parses config values from all supported places and merges it.
-// If some of the config fields is not specified, then default is used.
-func Parse(name string) (Config, error) {
-	cfg, err := ParseJSON(name)
+// If some of the config fields are not specified, then defaults are used.
+//
+// Command-line flags are outside of the config and should be parsed
+// separately using ParseFlags.
+func Parse(file string) (Config, error) {
+	cfg, err := parseJSON(file)
 
 	if err != nil {
 		return Config{}, fmt.Errorf("json: %v", err)
 	}
 
-	env, err := ParseEnv()
+	env, err := parseEnv()
 
 	if err != nil {
 		return Config{}, fmt.Errorf("env: %v", err)
@@ -130,9 +39,35 @@ func Parse(name string) (Config, error) {
 	return cfg, nil
 }
 
-// ParseJSON parses JSON file at the given path and returns parsed Config.
-// If the file not specifies some of the fields, then defaults will be used.
-func ParseJSON(name string) (Config, error) {
+// ParseFlags parses and returns command-line flags.
+func ParseFlags() Flags {
+	flags := Flags{}
+
+	flag.StringVar(
+		&flags.ConfigPath,
+		"config",
+		"config.json",
+		"path to configuration file",
+	)
+	flag.BoolVar(
+		&flags.PrintVersion,
+		"version",
+		false,
+		"print program version",
+	)
+	flag.BoolVar(
+		&flags.GenerateSecret,
+		"secret",
+		false,
+		"generate session secret",
+	)
+
+	flag.Parse()
+
+	return flags
+}
+
+func parseJSON(name string) (Config, error) {
 	data, err := os.ReadFile(name)
 
 	if err != nil {
@@ -150,6 +85,22 @@ func ParseJSON(name string) (Config, error) {
 	}
 
 	return cfg, nil
+}
+
+func parseEnv() (Env, error) {
+	env := Env{}
+
+	if port := os.Getenv("SOCKS_PORT"); port != "" {
+		p, err := strconv.Atoi(port)
+
+		if err != nil {
+			return Env{}, err
+		}
+
+		env.SocksPort = uint16(p)
+	}
+
+	return env, nil
 }
 
 // Validate checks config fields that are essential for the program,
@@ -214,6 +165,9 @@ func Validate(cfg Config) error {
 	return nil
 }
 
+// SetupLog initializes logger.
+//
+// Should be called at the program start with valid config.
 func SetupLog(cfg Log) error {
 	if cfg.Output == "" {
 		slog.SetLogLoggerLevel(slog.Level(cfg.Level))
@@ -236,6 +190,9 @@ func SetupLog(cfg Log) error {
 	return nil
 }
 
+// SetupDNS initializes DNS.
+//
+// Should be called at the program start with valid config.
 func SetupDNS(cfg DNS) error {
 	switch strings.ToLower(cfg.Provider) {
 	case "":
