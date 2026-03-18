@@ -116,14 +116,16 @@ func run(ctx context.Context, errs chan<- error) error {
 
 	var wg sync.WaitGroup
 
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
+	if cfg.Socks.Port > 0 {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
 
-		if err := socks.Listen(ctx, cfg, vkClient, storageClient); err != nil {
-			errs <- fmt.Errorf("listen socks: %v", err)
-		}
-	}()
+			if err := socks.Listen(ctx, cfg, vkClient, storageClient); err != nil {
+				errs <- fmt.Errorf("listen socks: %v", err)
+			}
+		}()
+	}
 
 	for _, club := range cfg.Clubs {
 		wg.Add(1)
