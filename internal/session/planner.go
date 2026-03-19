@@ -248,7 +248,7 @@ func (p *planner) createPlan(dg datagram.Datagram) (sendingPlan, error) {
 		return plan, nil
 	}
 
-	// numbered datagrams, typically from history, goes this way
+	// numbered datagrams (typically, from history) goes this way
 	if dg.Number != 0 {
 		available := []sendingMethod{}
 
@@ -269,7 +269,7 @@ func (p *planner) createPlan(dg datagram.Datagram) (sendingPlan, error) {
 		return plan, nil
 	}
 
-	// large datagrams whose number is zero goes this way
+	// large datagrams whose number is zero (typically, forwards) goes this way
 	for len(dg.Payload) > 0 {
 		method := randElem(bigMethods)
 		chunks := transform.BytesToChunks(dg.Payload, methodsMaxLenPayload[method], 2)

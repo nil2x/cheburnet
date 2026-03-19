@@ -31,13 +31,24 @@ type DNS struct {
 }
 
 type Session struct {
-	TimeoutMS int    `json:"timeout"`
-	Secret    string `json:"secret"`
-	SecretKey []byte `json:"-"`
+	TimeoutMS         int    `json:"timeout"`
+	Secret            string `json:"secret"`
+	SecretKey         []byte `json:"-"`
+	BufferSize        int    `json:"bufferSize"`
+	TimeoutIntervalMS int    `json:"timeoutInterval"`
+	ClearIntervalMS   int    `json:"clearInterval"`
 }
 
 func (cfg Session) Timeout() time.Duration {
 	return time.Duration(cfg.TimeoutMS) * time.Millisecond
+}
+
+func (cfg Session) TimeoutInterval() time.Duration {
+	return time.Duration(cfg.TimeoutIntervalMS) * time.Millisecond
+}
+
+func (cfg Session) ClearInterval() time.Duration {
+	return time.Duration(cfg.ClearIntervalMS) * time.Millisecond
 }
 
 type Socks struct {

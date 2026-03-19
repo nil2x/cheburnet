@@ -238,7 +238,7 @@ func handleDatagram(cfg config.Config, vkC *api.VKClient, storageC *api.StorageC
 
 	if !exists {
 		var err error
-		ses, err = session.Open(dg.Session, cfg, vkC, storageC)
+		ses, err = session.Open(cfg, vkC, storageC, dg.Session)
 
 		if err != nil {
 			return fmt.Errorf("open session: %v", err)

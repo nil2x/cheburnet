@@ -33,7 +33,11 @@ func defaultConfig() Config {
 			Level: 0,
 		},
 		Session: Session{
-			TimeoutMS: 30 * 1000,
+			TimeoutMS:         30 * 1000,
+			Secret:            "",
+			BufferSize:        100,
+			TimeoutIntervalMS: 10 * 1000,
+			ClearIntervalMS:   2 * 60 * 1000,
 		},
 		Socks: Socks{
 			Address: Address{

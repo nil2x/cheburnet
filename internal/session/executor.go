@@ -34,7 +34,7 @@ type executor struct {
 	topics   map[config.Club]api.BoardAddTopicResponse
 }
 
-func newExecutor(id datagram.Ses, cfg config.Config, vkC *api.VKClient, storageC *api.StorageClient) *executor {
+func newExecutor(cfg config.Config, vkC *api.VKClient, storageC *api.StorageClient, id datagram.Ses) *executor {
 	return &executor{
 		id:       id,
 		cfg:      cfg,

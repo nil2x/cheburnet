@@ -160,7 +160,7 @@ func run(ctx context.Context, errs chan<- error) error {
 	go func() {
 		defer wg.Done()
 
-		if err := session.Clear(ctx); err != nil {
+		if err := session.Clear(ctx, cfg.Session); err != nil {
 			errs <- fmt.Errorf("clear session: %v", err)
 		}
 	}()

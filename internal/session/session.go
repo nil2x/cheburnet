@@ -15,9 +15,9 @@ import (
 )
 
 var (
-	errSessionClosed    = errors.New("session is closed")
-	errSessionQueueFull = errors.New("session queue is full")
-	errSessionPeerNil   = errors.New("session peer is nil")
+	errSessionClosed     = errors.New("session is closed")
+	errSessionBufferFull = errors.New("session buffer is full")
+	errSessionPeerNil    = errors.New("session peer is nil")
 )
 
 type ConnWriteFunc func(net.Conn, []byte) error
@@ -35,55 +35,55 @@ type ConnWriteFunc func(net.Conn, []byte) error
 // first datagram, program B upon receiving the datagram also should open session
 // with id 1 and do response with a new datagram over this session.
 type Session struct {
-	ID         datagram.Ses
-	OnClose    chan struct{}
-	cfg        config.Config
-	mu         sync.Mutex
-	wg         sync.WaitGroup
-	local      net.Conn
-	localWrite ConnWriteFunc
-	planner    *planner
-	executor   *executor
-	toLocal    chan []byte
-	toRemote   chan datagram.Datagram
-	isClosed   bool
-	number     datagram.Num
-	history    map[datagram.Num]datagram.Datagram
-	openedAt   time.Time
-	activeAt   time.Time
-	inBytes    int
-	outBytes   int
+	ID           datagram.Ses
+	OnClose      chan struct{}
+	cfg          config.Config
+	mu           sync.Mutex
+	wg           sync.WaitGroup
+	local        net.Conn
+	localWrite   ConnWriteFunc
+	planner      *planner
+	executor     *executor
+	toLocal      chan []byte
+	toRemote     chan datagram.Datagram
+	isClosed     bool
+	number       datagram.Num
+	history      map[datagram.Num]datagram.Datagram
+	openedAt     time.Time
+	activeAt     time.Time
+	forwardedIn  int
+	forwardedOut int
 }
 
 // Open opens a new session. It must be closed upon finishing local or remote peer connection.
 //
 // id must be synchronized by all program instances. Data to the remote peer will be sent
 // using provided API clients.
-func Open(id datagram.Ses, cfg config.Config, vkC *api.VKClient, storageC *api.StorageClient) (*Session, error) {
+func Open(cfg config.Config, vkC *api.VKClient, storageC *api.StorageClient, id datagram.Ses) (*Session, error) {
 	slog.Debug("session: open", "id", id)
 
 	now := time.Now()
 	s := &Session{
-		ID:         id,
-		OnClose:    make(chan struct{}),
-		cfg:        cfg,
-		mu:         sync.Mutex{},
-		wg:         sync.WaitGroup{},
-		local:      nil,
-		localWrite: nil,
-		planner:    nil,
-		executor:   nil,
-		toLocal:    make(chan []byte, 500),
-		toRemote:   make(chan datagram.Datagram, 500),
-		isClosed:   false,
-		number:     0,
-		history:    make(map[datagram.Num]datagram.Datagram),
-		openedAt:   now,
-		activeAt:   now,
-		inBytes:    0,
-		outBytes:   0,
+		ID:           id,
+		OnClose:      make(chan struct{}),
+		cfg:          cfg,
+		mu:           sync.Mutex{},
+		wg:           sync.WaitGroup{},
+		local:        nil,
+		localWrite:   nil,
+		planner:      nil,
+		executor:     nil,
+		toLocal:      make(chan []byte, cfg.Session.BufferSize),
+		toRemote:     make(chan datagram.Datagram, cfg.Session.BufferSize),
+		isClosed:     false,
+		number:       0,
+		history:      make(map[datagram.Num]datagram.Datagram),
+		openedAt:     now,
+		activeAt:     now,
+		forwardedIn:  0,
+		forwardedOut: 0,
 	}
-	s.executor = newExecutor(id, cfg, vkC, storageC)
+	s.executor = newExecutor(cfg, vkC, storageC, id)
 	s.planner = newPlanner(cfg, s, s.executor)
 
 	s.wg.Add(1)
@@ -125,8 +125,8 @@ func (s *Session) Close() {
 	slog.Debug(
 		"session: stats",
 		"id", s.ID,
-		"in", s.inBytes,
-		"out", s.outBytes,
+		"in", s.forwardedIn,
+		"out", s.forwardedOut,
 		"duration", int(time.Since(s.openedAt).Seconds()),
 		"fragments", len(s.history),
 	)
@@ -233,13 +233,13 @@ func (s *Session) WriteLocal(b []byte) error {
 	}
 
 	s.activeAt = time.Now()
-	s.inBytes += len(b)
+	s.forwardedIn += len(clone)
 
 	select {
 	case s.toLocal <- clone:
 		return nil
 	default:
-		return errSessionQueueFull
+		return errSessionBufferFull
 	}
 }
 
@@ -271,13 +271,16 @@ func (s *Session) WriteRemote(dg datagram.Datagram) error {
 	}
 
 	s.activeAt = time.Now()
-	s.outBytes += len(dg.Payload)
+
+	if dg.Command == datagram.CommandForward {
+		s.forwardedOut += len(clone.Payload)
+	}
 
 	select {
 	case s.toRemote <- clone:
 		return nil
 	default:
-		return errSessionQueueFull
+		return errSessionBufferFull
 	}
 }
 

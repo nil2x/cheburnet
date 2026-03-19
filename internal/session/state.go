@@ -6,6 +6,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/nil2x/cheburnet/internal/config"
 	"github.com/nil2x/cheburnet/internal/datagram"
 )
 
@@ -59,56 +60,63 @@ func NextID() datagram.Ses {
 }
 
 // Clear periodically clears the global state from closed or inactive sessions.
-func Clear(ctx context.Context) error {
+func Clear(ctx context.Context, cfg config.Session) error {
+	timeoutInterval := cfg.TimeoutInterval()
+	clearInterval := cfg.ClearInterval()
+
 	var wg sync.WaitGroup
 
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
+	if timeoutInterval > 0 {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
 
-		for {
-			select {
-			case <-ctx.Done():
-				return
-			case <-time.After(10 * time.Second):
-				sessionsMu.Lock()
+			for {
+				select {
+				case <-ctx.Done():
+					return
+				case <-time.After(timeoutInterval):
+					sessionsMu.Lock()
 
-				for id, ses := range sessions {
-					if ses.IsInactive() {
-						slog.Error("session: timeout", "id", id)
+					for id, ses := range sessions {
+						if ses.IsInactive() {
+							slog.Error("session: timeout", "id", id)
 
-						go func(ses *Session) {
-							ses.Close()
-						}(ses)
+							go func(ses *Session) {
+								ses.Close()
+							}(ses)
+						}
 					}
+
+					sessionsMu.Unlock()
 				}
-
-				sessionsMu.Unlock()
 			}
-		}
-	}()
+		}()
+	}
 
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
+	if clearInterval > 0 {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
 
-		for {
-			select {
-			case <-ctx.Done():
-				return
-			case <-time.After(5 * time.Minute):
-				sessionsMu.Lock()
+			for {
+				select {
+				case <-ctx.Done():
+					return
+				case <-time.After(clearInterval):
+					sessionsMu.Lock()
 
-				for id, ses := range sessions {
-					if ses.IsClosed() {
-						delete(sessions, id)
+					for id, ses := range sessions {
+						if ses.IsClosed() {
+							delete(sessions, id)
+						}
 					}
-				}
 
-				sessionsMu.Unlock()
+					sessionsMu.Unlock()
+				}
 			}
-		}
-	}()
+		}()
+	}
 
 	wg.Wait()
 

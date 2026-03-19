@@ -78,7 +78,7 @@ func Listen(ctx context.Context, cfg config.Config, vkC *api.VKClient, storageC 
 			continue
 		}
 
-		ses, err := session.Open(session.NextID(), cfg, vkC, storageC)
+		ses, err := session.Open(cfg, vkC, storageC, session.NextID())
 
 		if err != nil {
 			slog.Error("socks: session", "err", err)
