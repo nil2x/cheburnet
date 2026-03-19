@@ -108,6 +108,8 @@ func Init(cfg config.Config) error {
 type sendingPlan struct {
 	methods          []sendingMethod
 	fragments        []datagram.Datagram
+	encoded          []string
+	strings          []string
 	clubs            []config.Club
 	users            []config.User
 	methodDocMethods []sendingMethod
@@ -120,6 +122,14 @@ func (p sendingPlan) isEmpty() bool {
 func (p sendingPlan) isInvalid() error {
 	if len(p.methods) != len(p.fragments) {
 		return errors.New("methods and fragments mismatch")
+	}
+
+	if len(p.methods) != len(p.encoded) {
+		return errors.New("methods and encoded mismatch")
+	}
+
+	if len(p.methods) != len(p.strings) {
+		return errors.New("methods and strings mismatch")
 	}
 
 	if len(p.methods) != len(p.clubs) {
@@ -232,6 +242,8 @@ func (p *planner) createPlan(dg datagram.Datagram) (sendingPlan, error) {
 	plan := sendingPlan{
 		methods:   []sendingMethod{},
 		fragments: []datagram.Datagram{},
+		encoded:   []string{},
+		strings:   []string{},
 	}
 	maxSmallForwardLen := min(methodsMaxLenEncoded[methodQR], methodsMaxLenEncoded[methodPhotoComment])
 
@@ -244,6 +256,8 @@ func (p *planner) createPlan(dg datagram.Datagram) (sendingPlan, error) {
 		method := randElem(smallMethods)
 		plan.methods = append(plan.methods, method)
 		plan.fragments = append(plan.fragments, dg)
+		plan.encoded = append(plan.encoded, datagram.Encode(dg, methodsEncoding[method]))
+		plan.strings = append(plan.strings, dg.String())
 
 		return plan, nil
 	}
@@ -265,6 +279,8 @@ func (p *planner) createPlan(dg datagram.Datagram) (sendingPlan, error) {
 		method := randElem(available)
 		plan.methods = append(plan.methods, method)
 		plan.fragments = append(plan.fragments, dg)
+		plan.encoded = append(plan.encoded, datagram.Encode(dg, methodsEncoding[method]))
+		plan.strings = append(plan.strings, dg.String())
 
 		return plan, nil
 	}
@@ -293,6 +309,8 @@ func (p *planner) createPlan(dg datagram.Datagram) (sendingPlan, error) {
 
 		plan.methods = append(plan.methods, method)
 		plan.fragments = append(plan.fragments, fg)
+		plan.encoded = append(plan.encoded, datagram.Encode(fg, methodsEncoding[method]))
+		plan.strings = append(plan.strings, fg.String())
 
 		if len(plan.methods) > 1000 {
 			return sendingPlan{}, errors.New("infinite loop protection")

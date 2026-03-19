@@ -60,13 +60,15 @@ func (e *executor) execute(plan sendingPlan) error {
 	qrs := []sendingPlan{}
 
 	for i, method := range plan.methods {
-		fg := plan.fragments[i]
+		encoded := plan.encoded[i]
+		str := plan.strings[i]
 		club := plan.clubs[i]
 		user := plan.users[i]
 
 		if method == methodDoc {
 			p := sendingPlan{
-				fragments:        []datagram.Datagram{fg},
+				encoded:          []string{encoded},
+				strings:          []string{str},
 				clubs:            []config.Club{club},
 				users:            []config.User{user},
 				methodDocMethods: []sendingMethod{plan.methodDocMethods[len(docs)]},
@@ -77,15 +79,15 @@ func (e *executor) execute(plan sendingPlan) error {
 
 		if method == methodQR {
 			p := sendingPlan{
-				fragments: []datagram.Datagram{fg},
-				clubs:     []config.Club{club},
-				users:     []config.User{user},
+				encoded: []string{encoded},
+				strings: []string{str},
+				clubs:   []config.Club{club},
+				users:   []config.User{user},
 			}
 			qrs = append(qrs, p)
 			continue
 		}
 
-		encoded := datagram.Encode(fg, methodsEncoding[method])
 		f := func() error {
 			mf, err := e.methodToFunc(method)
 
@@ -96,16 +98,16 @@ func (e *executor) execute(plan sendingPlan) error {
 			return mf(encoded, club, user)
 		}
 
-		e.send(f, "method", method, "dg", fg)
+		e.send(f, "method", method, "dg", str)
 	}
 
 	if len(docs) > 0 {
 		for _, p := range docs {
-			fg := p.fragments[0]
+			encoded := p.encoded[0]
+			str := p.strings[0]
 			club := p.clubs[0]
 			user := p.users[0]
 			method := p.methodDocMethods[0]
-			encoded := datagram.Encode(fg, methodsEncoding[methodDoc])
 			f := func() error {
 				mf, err := e.methodToFunc(method)
 
@@ -116,7 +118,7 @@ func (e *executor) execute(plan sendingPlan) error {
 				return e.executeMethodDoc(encoded, club, user, mf)
 			}
 
-			e.send(f, "method", methodDoc, "dg", fg)
+			e.send(f, "method", methodDoc, "dg", str)
 		}
 	}
 
@@ -127,9 +129,8 @@ func (e *executor) execute(plan sendingPlan) error {
 		slogArgs = append(slogArgs, "method", methodQR)
 
 		for _, p := range qrs {
-			fg := p.fragments[0]
-			encoded = append(encoded, datagram.Encode(fg, methodsEncoding[methodQR]))
-			slogArgs = append(slogArgs, "dg", fg)
+			encoded = append(encoded, p.encoded[0])
+			slogArgs = append(slogArgs, "dg", p.strings[0])
 		}
 
 		club := qrs[0].clubs[0]
