@@ -122,6 +122,7 @@ type Flags struct {
 }
 
 type Env struct {
+	LogOutput string `env:"LOG_OUTPUT"`
 	SocksHost string `env:"SOCKS_HOST"`
 	SocksPort uint16 `env:"SOCKS_PORT"`
 }

@@ -32,6 +32,10 @@ func Parse(file string) (Config, error) {
 		return Config{}, fmt.Errorf("env: %v", err)
 	}
 
+	if env.LogOutput != "" {
+		cfg.Log.Output = env.LogOutput
+	}
+
 	if env.SocksHost != "" {
 		cfg.Socks.Host = env.SocksHost
 	}
@@ -93,6 +97,7 @@ func parseJSON(name string) (Config, error) {
 
 func parseEnv() (Env, error) {
 	env := Env{
+		LogOutput: os.Getenv("LOG_OUTPUT"),
 		SocksHost: os.Getenv("SOCKS_HOST"),
 	}
 
