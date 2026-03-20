@@ -35,8 +35,7 @@ var (
 	methodsMaxLenPayload = map[sendingMethod]int{}
 )
 
-// Init must be called at the program start before Session usage.
-func Init(cfg config.Config) error {
+func initPlanner(cfg config.Config) {
 	methodsEnabled = map[sendingMethod]bool{
 		methodMessage:       true,
 		methodPost:          true,
@@ -101,8 +100,6 @@ func Init(cfg config.Config) error {
 		methodTopic:         datagram.CalcMaxLenPayload(methodsMaxLenEncoded[methodTopic]),
 		methodTopicComment:  datagram.CalcMaxLenPayload(methodsMaxLenEncoded[methodTopicComment]),
 	}
-
-	return nil
 }
 
 type sendingPlan struct {
@@ -156,19 +153,20 @@ func (p sendingPlan) isInvalid() error {
 }
 
 // planner is a component of Session. It responsible for creating most efficient
-// sending plan for a given datagram.
+// sending plan for a given datagram. The datagram, if possible, may be split into
+// smaller datagrams, thus the plan may consist either of one or multiple items.
 //
-// It is needed because sending happen using third party API, which have limitations.
-// To ensure that large amount of datagrams successfully reach a remote peer over third party API,
-// we have to use this API efficiently. That's what planner do. Though, you must not assume
-// that all datagrams will be delivered.
+// The plan is needed because sending happen using third party API, which have limitations.
+// To ensure that datagrams successfully reach a remote peer over third party API we have to
+// use this API efficiently. That's what planner do. Though, you must not assume that all
+// datagrams will be delivered successfully as any plan may fail for independent reason.
 type planner struct {
 	cfg      config.Config
 	session  *Session
-	executor *executor
+	executor executorI
 }
 
-func newPlanner(cfg config.Config, s *Session, e *executor) *planner {
+func newPlanner(cfg config.Config, s *Session, e executorI) *planner {
 	return &planner{
 		cfg:      cfg,
 		session:  s,

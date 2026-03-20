@@ -35,12 +35,17 @@ type Session struct {
 	Secret            string `json:"secret"`
 	SecretKey         []byte `json:"-"`
 	BufferSize        int    `json:"bufferSize"`
+	MuxIntervalMS     int    `json:"muxInterval"`
 	TimeoutIntervalMS int    `json:"timeoutInterval"`
 	ClearIntervalMS   int    `json:"clearInterval"`
 }
 
 func (cfg Session) Timeout() time.Duration {
 	return time.Duration(cfg.TimeoutMS) * time.Millisecond
+}
+
+func (cfg Session) MuxInterval() time.Duration {
+	return time.Duration(cfg.MuxIntervalMS) * time.Millisecond
 }
 
 func (cfg Session) TimeoutInterval() time.Duration {

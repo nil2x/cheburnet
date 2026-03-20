@@ -6,9 +6,18 @@ import (
 	"sync"
 	"time"
 
+	"github.com/nil2x/cheburnet/internal/api"
 	"github.com/nil2x/cheburnet/internal/config"
 	"github.com/nil2x/cheburnet/internal/datagram"
 )
+
+// Init must be called at the program start before Session usage.
+func Init(cfg config.Config, vkC *api.VKClient, storageC *api.StorageClient) error {
+	initPlanner(cfg)
+	initMultiplexer(cfg, vkC, storageC)
+
+	return nil
+}
 
 var sessions = map[datagram.Ses]*Session{}
 var sessionsMu = sync.Mutex{}

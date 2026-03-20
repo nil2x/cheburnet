@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"hash/crc32"
 	"math"
+	"strings"
 	"time"
 
 	"github.com/nil2x/cheburnet/internal/transform"
@@ -213,4 +214,36 @@ func Decode(s string) (Datagram, error) {
 	}
 
 	return dg, nil
+}
+
+// Mux combines together encoded datagrams into a single string.
+// To revert back, you should Demux first and then Decode each datagram.
+//
+// If input consist only of one encoded datagram, that datgram is returned
+// without modification.
+//
+// Length of muxed string can be find out using MuxLen.
+func Mux(encoded []string) string {
+	return strings.Join(encoded, " ")
+}
+
+// Demux is a reverse operation of Mux.
+func Demux(s string) []string {
+	return strings.Split(s, " ")
+}
+
+// IsMuxed returns if s is output of Mux and contain two and more datagrams.
+func IsMuxed(s string) bool {
+	return strings.Contains(s, " ")
+}
+
+// MuxLen returns number of runes (characters) that Mux operation will add to
+// the final string of n muxed datagrams. To find out length of the final string,
+// use MuxLen and LenEncoded together.
+func MuxLen(n int) int {
+	if n == 0 {
+		return 0
+	}
+
+	return n - 1
 }

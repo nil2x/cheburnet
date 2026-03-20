@@ -43,7 +43,7 @@ type Session struct {
 	local        net.Conn
 	localWrite   ConnWriteFunc
 	planner      *planner
-	executor     *executor
+	executor     executorI
 	toLocal      chan []byte
 	toRemote     chan datagram.Datagram
 	isClosed     bool
@@ -83,7 +83,13 @@ func Open(cfg config.Config, vkC *api.VKClient, storageC *api.StorageClient, id 
 		forwardedIn:  0,
 		forwardedOut: 0,
 	}
-	s.executor = newExecutor(cfg, vkC, storageC, id)
+
+	if muxer == nil {
+		s.executor = newExecutor(cfg, vkC, storageC, id)
+	} else {
+		s.executor = muxer
+	}
+
 	s.planner = newPlanner(cfg, s, s.executor)
 
 	s.wg.Add(1)

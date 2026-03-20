@@ -17,8 +17,16 @@ var (
 	zeroDatagramASCII = datagram.Encode(zeroDatagram, transform.Base85CharsetASCII)
 )
 
+type executorI interface {
+	execute(sendingPlan) error
+	wait()
+	havePosts() bool
+	haveTopics() bool
+}
+
 // executor is a component of Session. It responsible for executing a plan that was
-// created by the planner.
+// created by the planner. The plan may consist of multiple datagrams, they all will
+// be executed and tracked.
 //
 // Note that datagrams are sent without any particular order. On the receiver side
 // they also will be delivered without any particular order. You must assume that
@@ -34,7 +42,7 @@ type executor struct {
 	topics   map[config.Club]api.BoardAddTopicResponse
 }
 
-func newExecutor(cfg config.Config, vkC *api.VKClient, storageC *api.StorageClient, id datagram.Ses) *executor {
+func newExecutor(cfg config.Config, vkC *api.VKClient, storageC *api.StorageClient, id datagram.Ses) executorI {
 	return &executor{
 		id:       id,
 		cfg:      cfg,

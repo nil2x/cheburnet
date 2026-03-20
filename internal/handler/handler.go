@@ -37,56 +37,58 @@ func (e event) String() string {
 // This function should be executed in goroutine as handling of one event may
 // take some time.
 func handleEvent(cfg config.Config, vkC *api.VKClient, storageC *api.StorageClient, evt event) error {
-	encodedS := ""
-	encodedArr := []string{}
+	muxed := ""
+	encoded := []string{}
 	var err error
 
 	if len(evt.longPollUpdate.Type) > 0 {
 		switch evt.longPollUpdate.TypeEnum() {
 		case api.UpdateTypeMessageReply:
-			encodedS = evt.longPollUpdate.Object.Text
+			muxed = evt.longPollUpdate.Object.Text
 		case api.UpdateTypeWallPostNew:
-			encodedS = evt.longPollUpdate.Object.Text
+			muxed = evt.longPollUpdate.Object.Text
 		case api.UpdateTypeWallReplyNew:
-			encodedS = evt.longPollUpdate.Object.Text
+			muxed = evt.longPollUpdate.Object.Text
 		case api.UpdateTypePhotoNew:
 			if transform.IsTextURL(evt.longPollUpdate.Object.Text) {
-				encodedS = evt.longPollUpdate.Object.Text
+				muxed = evt.longPollUpdate.Object.Text
+			} else if datagram.IsMuxed(evt.longPollUpdate.Object.Text) {
+				muxed = evt.longPollUpdate.Object.Text
 			} else if shouldHandlePhoto(evt.longPollUpdate.Object.Text) {
-				encodedArr, err = handlePhoto(cfg.QR, vkC, evt.longPollUpdate.Object.OrigPhoto.URL)
+				encoded, err = handlePhoto(cfg.QR, vkC, evt.longPollUpdate.Object.OrigPhoto.URL)
 			} else {
-				encodedS = evt.longPollUpdate.Object.Text
+				muxed = evt.longPollUpdate.Object.Text
 			}
 		case api.UpdateTypeGroupChangeSettings:
 			if len(evt.longPollUpdate.Object.Changes.Description.NewValue) > 0 {
-				encodedS = evt.longPollUpdate.Object.Changes.Description.NewValue
+				muxed = evt.longPollUpdate.Object.Changes.Description.NewValue
 			} else if len(evt.longPollUpdate.Object.Changes.Website.NewValue) > 0 {
-				encodedS = evt.longPollUpdate.Object.Changes.Website.NewValue
+				muxed = evt.longPollUpdate.Object.Changes.Website.NewValue
 			}
 		case api.UpdateTypeVideoCommentNew:
-			encodedS = evt.longPollUpdate.Object.Text
+			muxed = evt.longPollUpdate.Object.Text
 		case api.UpdateTypePhotoCommentNew:
-			encodedS = evt.longPollUpdate.Object.Text
+			muxed = evt.longPollUpdate.Object.Text
 		case api.UpdateTypeMarketCommentNew:
-			encodedS = evt.longPollUpdate.Object.Text
+			muxed = evt.longPollUpdate.Object.Text
 		case api.UpdateTypeBoardPostNew:
-			encodedS = evt.longPollUpdate.Object.Text
+			muxed = evt.longPollUpdate.Object.Text
 		default:
 			err = errors.New("unsupported update")
 		}
 	} else if len(evt.storageValue) > 0 {
-		encodedS = evt.storageValue
+		muxed = evt.storageValue
 	} else {
 		err = errors.New("empty event")
 	}
 
-	if transform.IsTextURL(encodedS) {
-		uri := transform.FromTextURL(encodedS)
+	if transform.IsTextURL(muxed) {
+		uri := transform.FromTextURL(muxed)
 
 		if shouldHandleDoc(uri) {
-			encodedS, err = handleDoc(vkC, uri)
+			muxed, err = handleDoc(vkC, uri)
 		} else {
-			encodedS = ""
+			muxed = ""
 		}
 	}
 
@@ -94,14 +96,14 @@ func handleEvent(cfg config.Config, vkC *api.VKClient, storageC *api.StorageClie
 		return err
 	}
 
-	if len(encodedS) > 0 {
-		encodedArr = append(encodedArr, encodedS)
+	if len(muxed) > 0 {
+		encoded = append(encoded, datagram.Demux(muxed)...)
 	}
 
 	var datagrams []datagram.Datagram
 
-	for _, encoded := range encodedArr {
-		dg, err := handleEncoded(encoded)
+	for _, enc := range encoded {
+		dg, err := handleEncoded(enc)
 
 		if err != nil {
 			return err
@@ -197,15 +199,13 @@ func handleDoc(vkC *api.VKClient, uri string) (string, error) {
 		return "", fmt.Errorf("delete query: %v", err)
 	}
 
-	encodedB, err := vkC.Download(uri)
+	b, err := vkC.Download(uri)
 
 	if err != nil {
 		return "", fmt.Errorf("download url: %v", err)
 	}
 
-	encodedS := string(encodedB)
-
-	return encodedS, nil
+	return string(b), nil
 }
 
 func handleEncoded(s string) (datagram.Datagram, error) {

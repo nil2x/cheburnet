@@ -36,6 +36,7 @@ func defaultConfig() Config {
 			TimeoutMS:         30 * 1000,
 			Secret:            "",
 			BufferSize:        100,
+			MuxIntervalMS:     500,
 			TimeoutIntervalMS: 10 * 1000,
 			ClearIntervalMS:   2 * 60 * 1000,
 		},

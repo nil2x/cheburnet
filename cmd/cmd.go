@@ -91,10 +91,6 @@ func run(ctx context.Context, errs chan<- error) error {
 		return fmt.Errorf("validate qr: %v", err)
 	}
 
-	if err := session.Init(cfg); err != nil {
-		return fmt.Errorf("init session: %v", err)
-	}
-
 	vkClient := api.NewVKClient(cfg.API)
 	storageClient := api.NewStorageClient()
 
@@ -112,6 +108,10 @@ func run(ctx context.Context, errs chan<- error) error {
 		if err := api.ValidateUser(vkClient, user); err != nil {
 			return fmt.Errorf("validate user: %v: %v", user.Name, err)
 		}
+	}
+
+	if err := session.Init(cfg, vkClient, storageClient); err != nil {
+		return fmt.Errorf("init session: %v", err)
 	}
 
 	var wg sync.WaitGroup
