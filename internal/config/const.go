@@ -39,6 +39,7 @@ func defaultConfig() Config {
 			MuxIntervalMS:     500,
 			TimeoutIntervalMS: 10 * 1000,
 			ClearIntervalMS:   2 * 60 * 1000,
+			MethodsEnabled:    map[int]bool{},
 		},
 		Socks: Socks{
 			Address: Address{

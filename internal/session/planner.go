@@ -100,6 +100,10 @@ func initPlanner(cfg config.Config) {
 		methodTopic:         datagram.CalcMaxLenPayload(methodsMaxLenEncoded[methodTopic]),
 		methodTopicComment:  datagram.CalcMaxLenPayload(methodsMaxLenEncoded[methodTopicComment]),
 	}
+
+	for method, enabled := range cfg.Session.MethodsEnabled {
+		methodsEnabled[sendingMethod(method)] = enabled
+	}
 }
 
 type sendingPlan struct {
