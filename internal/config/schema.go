@@ -35,6 +35,7 @@ type Session struct {
 	Secret            string       `json:"secret"`
 	SecretKey         []byte       `json:"-"`
 	BufferSize        int          `json:"bufferSize"`
+	UploadAttempts    int          `json:"uploadAttempts"`
 	MuxIntervalMS     int          `json:"muxInterval"`
 	TimeoutIntervalMS int          `json:"timeoutInterval"`
 	ClearIntervalMS   int          `json:"clearInterval"`

@@ -36,6 +36,7 @@ func defaultConfig() Config {
 			TimeoutMS:         30 * 1000,
 			Secret:            "",
 			BufferSize:        100,
+			UploadAttempts:    3,
 			MuxIntervalMS:     500,
 			TimeoutIntervalMS: 10 * 1000,
 			ClearIntervalMS:   2 * 60 * 1000,
@@ -55,7 +56,7 @@ func defaultConfig() Config {
 			ForwardIntervalMS: 500,
 		},
 		API: API{
-			TimeoutMS: 10 * 1000,
+			TimeoutMS: 5 * 1000,
 		},
 		QR: QR{
 			ZBarPath:   "zbarimg",

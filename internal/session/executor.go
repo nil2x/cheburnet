@@ -285,7 +285,17 @@ func (e *executor) executeMethodDoc(text string, club config.Club, user config.U
 	uploadP := api.DocsUploadParams{
 		Data: []byte(text),
 	}
-	resp, err := e.vkC.DocsUploadAndSave(club, uploadP)
+
+	var resp api.DocsSaveResponse
+	var err error
+
+	for i := 0; i != e.cfg.Session.UploadAttempts; i++ {
+		resp, err = e.vkC.DocsUploadAndSave(club, uploadP)
+
+		if err == nil || api.IsFloodControl(err) {
+			break
+		}
+	}
 
 	if err != nil {
 		return err
@@ -331,7 +341,17 @@ func (e *executor) executeMethodQR(text []string, club config.Club, user config.
 		},
 	}
 
-	if _, err := e.vkC.PhotosUploadAndSave(club, user, p); err != nil {
+	err = nil
+
+	for i := 0; i != e.cfg.Session.UploadAttempts; i++ {
+		_, err = e.vkC.PhotosUploadAndSave(club, user, p)
+
+		if err == nil || api.IsFloodControl(err) {
+			break
+		}
+	}
+
+	if err != nil {
 		return fmt.Errorf("upload: %v", err)
 	}
 

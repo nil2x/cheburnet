@@ -61,6 +61,20 @@ func (r vkIntResult) check(method string) error {
 	return nil
 }
 
+// IsFloodControl checks if API response error is of "flood control" type.
+func IsFloodControl(err error) bool {
+	if err == nil {
+		return false
+	}
+
+	s := strings.ToLower(err.Error())
+	is :=
+		strings.Contains(s, "flood control") ||
+			strings.Contains(s, "too many requests per second")
+
+	return is
+}
+
 // VKClient is a wrapper over VK API. See https://dev.vk.com/ru/reference.
 //
 // Some methods require club credentials, some methods require user credentials,
