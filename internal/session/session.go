@@ -32,8 +32,8 @@ type ConnWriteFunc func(net.Conn, []byte) error
 //
 // Session is intended to be used with Datagram. The program should synchronize
 // Session.ID on both ends, i.e. if program A opens session with id 1 and sends
-// first datagram, program B upon receiving the datagram also should open session
-// with id 1 and do response with a new datagram over this session.
+// first datagram, program B upon receiving this datagram also should open session
+// with id 1 and response with a new datagram over this session.
 type Session struct {
 	ID           datagram.Ses
 	OnClose      chan struct{}

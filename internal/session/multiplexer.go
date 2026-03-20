@@ -138,12 +138,12 @@ func (m *multiplexer) merge(plans []sendingPlan) (sendingPlan, error) {
 
 			if !exists {
 				grouped = sendingPlan{
-					fragments:        []datagram.Datagram{},
-					encoded:          []string{},
-					strings:          []string{},
-					clubs:            []config.Club{},
-					users:            []config.User{},
-					methodDocMethods: []sendingMethod{},
+					fragments:      []datagram.Datagram{},
+					encoded:        []string{},
+					strings:        []string{},
+					clubs:          []config.Club{},
+					users:          []config.User{},
+					docLinkMethods: []sendingMethod{},
 				}
 				byMethodMeta[method] = []metadata{}
 			}
@@ -162,14 +162,14 @@ func (m *multiplexer) merge(plans []sendingPlan) (sendingPlan, error) {
 			byMethodMeta[method] = append(byMethodMeta[method], meta)
 		}
 
-		if len(plan.methodDocMethods) > 0 {
+		if len(plan.docLinkMethods) > 0 {
 			grouped, exists := byMethod[methodDoc]
 
 			if !exists {
 				return sendingPlan{}, errInvalidByMethod
 			}
 
-			grouped.methodDocMethods = append(grouped.methodDocMethods, plan.methodDocMethods...)
+			grouped.docLinkMethods = append(grouped.docLinkMethods, plan.docLinkMethods...)
 			byMethod[methodDoc] = grouped
 		}
 	}
@@ -257,13 +257,13 @@ func (m *multiplexer) merge(plans []sendingPlan) (sendingPlan, error) {
 	}
 
 	merged := sendingPlan{
-		methods:          []sendingMethod{},
-		fragments:        []datagram.Datagram{},
-		encoded:          []string{},
-		strings:          []string{},
-		clubs:            []config.Club{},
-		users:            []config.User{},
-		methodDocMethods: []sendingMethod{},
+		methods:        []sendingMethod{},
+		fragments:      []datagram.Datagram{},
+		encoded:        []string{},
+		strings:        []string{},
+		clubs:          []config.Club{},
+		users:          []config.User{},
+		docLinkMethods: []sendingMethod{},
 	}
 
 	// merge groups whose method is same and mux their datagrams
@@ -288,7 +288,7 @@ func (m *multiplexer) merge(plans []sendingPlan) (sendingPlan, error) {
 			merged.users = append(merged.users, randElem(byMethod[method].users))
 
 			if method == methodDoc {
-				merged.methodDocMethods = append(merged.methodDocMethods, randElem(byMethod[methodDoc].methodDocMethods))
+				merged.docLinkMethods = append(merged.docLinkMethods, randElem(byMethod[methodDoc].docLinkMethods))
 			}
 		}
 	}

@@ -103,13 +103,13 @@ func initPlanner(cfg config.Config) {
 }
 
 type sendingPlan struct {
-	methods          []sendingMethod
-	fragments        []datagram.Datagram
-	encoded          []string
-	strings          []string
-	clubs            []config.Club
-	users            []config.User
-	methodDocMethods []sendingMethod
+	methods        []sendingMethod
+	fragments      []datagram.Datagram
+	encoded        []string
+	strings        []string
+	clubs          []config.Club
+	users          []config.User
+	docLinkMethods []sendingMethod
 }
 
 func (p sendingPlan) isEmpty() bool {
@@ -145,7 +145,7 @@ func (p sendingPlan) isInvalid() error {
 		}
 	}
 
-	if methodDocCount != len(p.methodDocMethods) {
+	if methodDocCount != len(p.docLinkMethods) {
 		return errors.New("methodDoc misconfiguration")
 	}
 
@@ -154,7 +154,7 @@ func (p sendingPlan) isInvalid() error {
 
 // planner is a component of Session. It responsible for creating most efficient
 // sending plan for a given datagram. The datagram, if possible, may be split into
-// smaller datagrams, thus the plan may consist either of one or multiple items.
+// smaller datagrams, thus the plan may consist of either one or multiple items.
 //
 // The plan is needed because sending happen using third party API, which have limitations.
 // To ensure that datagrams successfully reach a remote peer over third party API we have to
@@ -184,13 +184,13 @@ func (p *planner) create(dg datagram.Datagram) (sendingPlan, error) {
 	plan.clubs = p.createClubs(plan.methods)
 	plan.users = p.createUsers(plan.methods)
 
-	docMethods, err := p.createMethodDocMethods(plan.methods)
+	docLinkMethods, err := p.createDocLinkMethods(plan.methods)
 
 	if err != nil {
 		return sendingPlan{}, err
 	}
 
-	plan.methodDocMethods = docMethods
+	plan.docLinkMethods = docLinkMethods
 
 	return plan, nil
 }
@@ -289,7 +289,7 @@ func (p *planner) createPlan(dg datagram.Datagram) (sendingPlan, error) {
 		chunks := transform.BytesToChunks(dg.Payload, methodsMaxLenPayload[method], 2)
 
 		if len(chunks) == 0 || len(chunks) > 2 {
-			return sendingPlan{}, errors.New("unexpected chunks logic")
+			return sendingPlan{}, errors.New("invalid chunks logic")
 		}
 
 		if len(chunks) == 2 {
@@ -302,7 +302,7 @@ func (p *planner) createPlan(dg datagram.Datagram) (sendingPlan, error) {
 		fg := datagram.New(dg.Session, num, dg.Command, chunks[0])
 
 		if fg.LenEncoded() > methodsMaxLenEncoded[method] {
-			return sendingPlan{}, errors.New("unexpected payload logic")
+			return sendingPlan{}, errors.New("invalid payload logic")
 		}
 
 		plan.methods = append(plan.methods, method)
@@ -338,7 +338,7 @@ func (p *planner) createUsers(methods []sendingMethod) []config.User {
 	return users
 }
 
-func (p *planner) createMethodDocMethods(methods []sendingMethod) ([]sendingMethod, error) {
+func (p *planner) createDocLinkMethods(methods []sendingMethod) ([]sendingMethod, error) {
 	available := []sendingMethod{
 		methodMessage,
 		methodPost,
@@ -363,18 +363,18 @@ func (p *planner) createMethodDocMethods(methods []sendingMethod) ([]sendingMeth
 	available = filterOutDisabledMethods(available)
 
 	if len(available) == 0 {
-		return nil, errors.New("no doc methods available")
+		return nil, errors.New("no doc link methods available")
 	}
 
-	docMethods := []sendingMethod{}
+	linkMethods := []sendingMethod{}
 
 	for _, method := range methods {
 		if method == methodDoc {
-			docMethods = append(docMethods, randElem(available))
+			linkMethods = append(linkMethods, randElem(available))
 		}
 	}
 
-	return docMethods, nil
+	return linkMethods, nil
 }
 
 func filterOutDisabledMethods(methods []sendingMethod) []sendingMethod {

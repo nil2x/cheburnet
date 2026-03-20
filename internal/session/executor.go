@@ -75,11 +75,11 @@ func (e *executor) execute(plan sendingPlan) error {
 
 		if method == methodDoc {
 			p := sendingPlan{
-				encoded:          []string{encoded},
-				strings:          []string{str},
-				clubs:            []config.Club{club},
-				users:            []config.User{user},
-				methodDocMethods: []sendingMethod{plan.methodDocMethods[len(docs)]},
+				encoded:        []string{encoded},
+				strings:        []string{str},
+				clubs:          []config.Club{club},
+				users:          []config.User{user},
+				docLinkMethods: []sendingMethod{plan.docLinkMethods[len(docs)]},
 			}
 			docs = append(docs, p)
 			continue
@@ -115,7 +115,7 @@ func (e *executor) execute(plan sendingPlan) error {
 			str := p.strings[0]
 			club := p.clubs[0]
 			user := p.users[0]
-			method := p.methodDocMethods[0]
+			method := p.docLinkMethods[0]
 			f := func() error {
 				mf, err := e.methodToFunc(method)
 
@@ -281,7 +281,7 @@ func (e *executor) executeMethodPostComment(text string, _ config.Club, _ config
 	return err
 }
 
-func (e *executor) executeMethodDoc(text string, club config.Club, user config.User, f executorStringFunc) error {
+func (e *executor) executeMethodDoc(text string, club config.Club, user config.User, linkF executorStringFunc) error {
 	uploadP := api.DocsUploadParams{
 		Data: []byte(text),
 	}
@@ -294,7 +294,7 @@ func (e *executor) executeMethodDoc(text string, club config.Club, user config.U
 	uri := transform.AddQuery(resp.Doc.URL, transform.Query{Caption: zeroDatagramASCII})
 	msg := transform.ToTextURL(uri)
 
-	return f(msg, club, user)
+	return linkF(msg, club, user)
 }
 
 func (e *executor) executeMethodQR(text []string, club config.Club, user config.User, caption string) error {
