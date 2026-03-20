@@ -238,7 +238,13 @@ func (e *executor) executeMethodPost(text string, club config.Club, _ config.Use
 	}
 
 	e.mu.Lock()
+
+	if len(e.posts) > 5 {
+		clear(e.posts)
+	}
+
 	e.posts[club] = resp
+
 	e.mu.Unlock()
 
 	return nil
@@ -395,7 +401,13 @@ func (e *executor) executeMethodTopic(text string, club config.Club, user config
 	}
 
 	e.mu.Lock()
+
+	if len(e.topics) > 5 {
+		clear(e.topics)
+	}
+
 	e.topics[club] = resp
+
 	e.mu.Unlock()
 
 	return nil
