@@ -33,14 +33,11 @@ func defaultConfig() Config {
 			Level: 0,
 		},
 		Session: Session{
-			TimeoutMS:         30 * 1000,
-			Secret:            "",
-			BufferSize:        100,
-			UploadAttempts:    3,
-			MuxIntervalMS:     500,
-			TimeoutIntervalMS: 10 * 1000,
-			ClearIntervalMS:   2 * 60 * 1000,
-			MethodsEnabled:    map[int]bool{},
+			TimeoutMS:      30 * 1000,
+			Secret:         "",
+			UploadAttempts: 3,
+			MuxIntervalMS:  500,
+			MethodsEnabled: map[int]bool{},
 		},
 		Socks: Socks{
 			Address: Address{

@@ -69,63 +69,59 @@ func NextID() datagram.Ses {
 }
 
 // Clear periodically clears the global state from closed or inactive sessions.
-func Clear(ctx context.Context, cfg config.Session) error {
-	timeoutInterval := cfg.TimeoutInterval()
-	clearInterval := cfg.ClearInterval()
+func Clear(ctx context.Context) error {
+	timeoutInterval := 10 * time.Second
+	deleteInterval := 2 * time.Minute
 
 	var wg sync.WaitGroup
 
-	if timeoutInterval > 0 {
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
 
-			for {
-				select {
-				case <-ctx.Done():
-					return
-				case <-time.After(timeoutInterval):
-					sessionsMu.Lock()
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			case <-time.After(timeoutInterval):
+				sessionsMu.Lock()
 
-					for id, ses := range sessions {
-						if ses.IsInactive() {
-							slog.Error("session: timeout", "id", id)
+				for id, ses := range sessions {
+					if ses.IsInactive() {
+						slog.Error("session: timeout", "id", id)
 
-							go func(ses *Session) {
-								ses.Close()
-							}(ses)
-						}
+						go func(ses *Session) {
+							ses.Close()
+						}(ses)
 					}
-
-					sessionsMu.Unlock()
 				}
+
+				sessionsMu.Unlock()
 			}
-		}()
-	}
+		}
+	}()
 
-	if clearInterval > 0 {
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
 
-			for {
-				select {
-				case <-ctx.Done():
-					return
-				case <-time.After(clearInterval):
-					sessionsMu.Lock()
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			case <-time.After(deleteInterval):
+				sessionsMu.Lock()
 
-					for id, ses := range sessions {
-						if ses.IsClosed() {
-							delete(sessions, id)
-						}
+				for id, ses := range sessions {
+					if ses.IsClosed() {
+						delete(sessions, id)
 					}
-
-					sessionsMu.Unlock()
 				}
+
+				sessionsMu.Unlock()
 			}
-		}()
-	}
+		}
+	}()
 
 	wg.Wait()
 
