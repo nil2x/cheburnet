@@ -12,6 +12,7 @@ type Config struct {
 	Log     Log     `json:"log"`
 	DNS     DNS     `json:"dns"`
 	Session Session `json:"session"`
+	Handler Handler `json:"handler"`
 	Socks   Socks   `json:"socks"`
 	API     API     `json:"api"`
 	QR      QR      `json:"qr"`
@@ -45,6 +46,10 @@ func (cfg Session) Timeout() time.Duration {
 
 func (cfg Session) MuxInterval() time.Duration {
 	return time.Duration(cfg.MuxIntervalMS) * time.Millisecond
+}
+
+type Handler struct {
+	DownloadAttempts int `json:"downloadAttempts"`
 }
 
 type Socks struct {

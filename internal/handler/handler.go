@@ -55,7 +55,7 @@ func handleEvent(cfg config.Config, vkC *api.VKClient, storageC *api.StorageClie
 			} else if datagram.IsMuxed(evt.longPollUpdate.Object.Text) {
 				muxed = evt.longPollUpdate.Object.Text
 			} else if shouldHandlePhoto(evt.longPollUpdate.Object.Text) {
-				encoded, err = handlePhoto(cfg.QR, vkC, evt.longPollUpdate.Object.OrigPhoto.URL)
+				encoded, err = handlePhoto(cfg, vkC, evt.longPollUpdate.Object.OrigPhoto.URL)
 			} else {
 				muxed = evt.longPollUpdate.Object.Text
 			}
@@ -86,7 +86,7 @@ func handleEvent(cfg config.Config, vkC *api.VKClient, storageC *api.StorageClie
 		uri := transform.FromTextURL(muxed)
 
 		if shouldHandleDoc(uri) {
-			muxed, err = handleDoc(vkC, uri)
+			muxed, err = handleDoc(cfg, vkC, uri)
 		} else {
 			muxed = ""
 		}
@@ -145,14 +145,23 @@ func shouldHandlePhoto(caption string) bool {
 	return sentByMethodQR
 }
 
-func handlePhoto(cfg config.QR, vkC *api.VKClient, uri string) ([]string, error) {
-	b, err := vkC.Download(uri)
+func handlePhoto(cfg config.Config, vkC *api.VKClient, uri string) ([]string, error) {
+	var b []byte
+	var err error
+
+	for i := 0; i != cfg.Handler.DownloadAttempts; i++ {
+		b, err = vkC.Download(uri)
+
+		if err == nil || api.IsFloodControl(err) {
+			break
+		}
+	}
 
 	if err != nil {
 		return nil, fmt.Errorf("download url: %v", err)
 	}
 
-	file, err := transform.SaveQR(b, "jpg", cfg.SaveDir)
+	file, err := transform.SaveQR(b, "jpg", cfg.QR.SaveDir)
 
 	if err != nil {
 		return nil, fmt.Errorf("save qr: %v", err)
@@ -160,7 +169,7 @@ func handlePhoto(cfg config.QR, vkC *api.VKClient, uri string) ([]string, error)
 
 	defer os.Remove(file)
 
-	content, err := transform.DecodeQR(file, cfg.ZBarPath)
+	content, err := transform.DecodeQR(file, cfg.QR.ZBarPath)
 
 	if err != nil {
 		return nil, fmt.Errorf("decode qr: %v", err)
@@ -191,7 +200,7 @@ func shouldHandleDoc(uri string) bool {
 	return sentByMethodDoc
 }
 
-func handleDoc(vkC *api.VKClient, uri string) (string, error) {
+func handleDoc(cfg config.Config, vkC *api.VKClient, uri string) (string, error) {
 	var err error
 	uri, err = transform.DeleteQuery(uri)
 
@@ -199,7 +208,15 @@ func handleDoc(vkC *api.VKClient, uri string) (string, error) {
 		return "", fmt.Errorf("delete query: %v", err)
 	}
 
-	b, err := vkC.Download(uri)
+	var b []byte
+
+	for i := 0; i != cfg.Handler.DownloadAttempts; i++ {
+		b, err = vkC.Download(uri)
+
+		if err == nil || api.IsFloodControl(err) {
+			break
+		}
+	}
 
 	if err != nil {
 		return "", fmt.Errorf("download url: %v", err)

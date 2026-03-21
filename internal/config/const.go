@@ -39,6 +39,9 @@ func defaultConfig() Config {
 			MuxIntervalMS:  500,
 			MethodsEnabled: map[int]bool{},
 		},
+		Handler: Handler{
+			DownloadAttempts: 3,
+		},
 		Socks: Socks{
 			Address: Address{
 				Host: "127.0.0.1",
