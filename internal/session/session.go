@@ -145,7 +145,10 @@ func (s *Session) Close() {
 	s.mu.Unlock()
 
 	s.wg.Wait()
-	s.executor.wait()
+
+	if s.executor != muxer {
+		s.executor.wait()
+	}
 
 	s.mu.Lock()
 
