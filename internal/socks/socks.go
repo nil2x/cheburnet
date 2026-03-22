@@ -117,8 +117,8 @@ func accept(cfg config.Config, ses *session.Session, peer net.Conn, stage socksS
 }
 
 type buffer struct {
-	buf  *bytes.Buffer
-	mu   *sync.Mutex
+	buf  bytes.Buffer
+	mu   sync.Mutex
 	done chan struct{}
 }
 
@@ -126,37 +126,46 @@ func handle(cfg config.Config, ses *session.Session, peer net.Conn, stage socksS
 	var wg sync.WaitGroup
 	var readErr error
 	var fwdErr error
-	fwdBuf := buffer{
-		buf:  &bytes.Buffer{},
-		mu:   &sync.Mutex{},
-		done: make(chan struct{}),
+	var fwdBuf *buffer
+
+	if cfg.Socks.ForwardInterval() > 0 {
+		fwdBuf = &buffer{
+			buf:  bytes.Buffer{},
+			mu:   sync.Mutex{},
+			done: make(chan struct{}),
+		}
 	}
 
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		defer close(fwdBuf.done)
+
+		if fwdBuf != nil {
+			defer close(fwdBuf.done)
+		}
 
 		readErr = read(cfg, ses, peer, stage, fwdBuf)
 	}()
 
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
+	if fwdBuf != nil {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
 
-		fwdErr = forward(cfg, ses, fwdBuf)
+			fwdErr = forward(cfg, ses, fwdBuf)
 
-		if fwdErr != nil {
-			peer.Close()
-		}
-	}()
+			if fwdErr != nil {
+				peer.Close()
+			}
+		}()
+	}
 
 	wg.Wait()
 
 	return errors.Join(readErr, fwdErr)
 }
 
-func read(cfg config.Config, ses *session.Session, peer net.Conn, stage socksStage, fwdBuf buffer) error {
+func read(cfg config.Config, ses *session.Session, peer net.Conn, stage socksStage, fwdBuf *buffer) error {
 	addr := peer.RemoteAddr().String()
 	timeout := cfg.Socks.ReadTimeout()
 	temp := make([]byte, cfg.Socks.ReadSize)
@@ -235,9 +244,14 @@ func read(cfg config.Config, ses *session.Session, peer net.Conn, stage socksSta
 					stage = stageForward
 				}
 			case stageForward:
-				fwdBuf.mu.Lock()
-				fwdBuf.buf.Write(in)
-				fwdBuf.mu.Unlock()
+				if fwdBuf != nil {
+					fwdBuf.mu.Lock()
+					fwdBuf.buf.Write(in)
+					fwdBuf.mu.Unlock()
+				} else {
+					slog.Debug("socks: forward", "ses", ses, "len", len(in))
+					err = handleForward(ses, in, cfg.Socks.ForwardSize)
+				}
 			}
 
 			if len(out) > 0 {
@@ -267,7 +281,7 @@ func read(cfg config.Config, ses *session.Session, peer net.Conn, stage socksSta
 	}
 }
 
-func forward(cfg config.Config, ses *session.Session, buf buffer) error {
+func forward(cfg config.Config, ses *session.Session, buf *buffer) error {
 	interval := cfg.Socks.ForwardInterval()
 
 	for {
@@ -293,9 +307,7 @@ func forward(cfg config.Config, ses *session.Session, buf buffer) error {
 		if len(in) > 0 {
 			slog.Debug("socks: forward", "ses", ses, "len", len(in))
 
-			err := handleForward(ses, in, cfg.Socks.ForwardSize)
-
-			if err != nil {
+			if err := handleForward(ses, in, cfg.Socks.ForwardSize); err != nil {
 				return err
 			}
 		}
