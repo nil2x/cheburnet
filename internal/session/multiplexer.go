@@ -17,7 +17,11 @@ import (
 var muxer executorI
 
 func initMultiplexer(cfg config.Config, vkC *api.VKClient, storageC *api.StorageClient) {
-	muxer = newMultiplexer(cfg, vkC, storageC)
+	if cfg.Session.MuxInterval() > 0 {
+		muxer = newMultiplexer(cfg, vkC, storageC)
+	} else {
+		muxer = nil
+	}
 }
 
 // multiplexer is a type of executor. It collects different plans that were created
@@ -43,27 +47,24 @@ type multiplexer struct {
 }
 
 func newMultiplexer(cfg config.Config, vkC *api.VKClient, storageC *api.StorageClient) executorI {
-	interval := cfg.Session.MuxInterval()
-
-	if interval == 0 {
-		return nil
-	}
-
 	m := &multiplexer{
 		mu:       sync.Mutex{},
 		buffer:   []sendingPlan{},
 		executor: newExecutor(cfg, vkC, storageC, 0),
 	}
+	interval := cfg.Session.MuxInterval()
 
-	go func() {
-		for {
-			<-time.After(interval)
+	if interval > 0 {
+		go func() {
+			for {
+				<-time.After(interval)
 
-			if err := m.flush(); err != nil {
-				slog.Error("session: mux", "err", err)
+				if err := m.flush(); err != nil {
+					slog.Error("session: mux", "err", err)
+				}
 			}
-		}
-	}()
+		}()
+	}
 
 	return m
 }
