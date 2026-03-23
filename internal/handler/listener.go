@@ -35,7 +35,7 @@ func ListenLongPoll(ctx context.Context, cfg config.Config, vkC *api.VKClient, s
 
 			if err != nil {
 				slog.Error("long poll: listen", "club", club.Name, "err", err)
-				sleep = time.Second * 5
+				sleep = 5 * time.Second
 				continue
 			}
 
@@ -51,7 +51,7 @@ func ListenLongPoll(ctx context.Context, cfg config.Config, vkC *api.VKClient, s
 					sleep = 0
 				} else {
 					slog.Error("long poll: refresh", "club", club.Name, "err", err)
-					sleep = time.Second * 5
+					sleep = 5 * time.Second
 				}
 
 				continue
@@ -97,7 +97,7 @@ func ListenStorage(ctx context.Context, cfg config.Config, vkC *api.VKClient, st
 			return nil
 		case <-time.After(sleep):
 			if !session.IsOpened() {
-				sleep = time.Millisecond * 500
+				sleep = 500 * time.Millisecond
 				continue
 			}
 
@@ -105,7 +105,7 @@ func ListenStorage(ctx context.Context, cfg config.Config, vkC *api.VKClient, st
 
 			if err != nil {
 				slog.Error("storage: listen", "club", club.Name, "err", err)
-				sleep = time.Second * 5
+				sleep = 5 * time.Second
 				continue
 			}
 
@@ -132,7 +132,7 @@ func ListenStorage(ctx context.Context, cfg config.Config, vkC *api.VKClient, st
 				}(evt)
 			}
 
-			sleep = time.Millisecond * 500
+			sleep = 500 * time.Millisecond
 		}
 	}
 }
