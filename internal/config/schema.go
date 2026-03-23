@@ -50,11 +50,17 @@ func (cfg Session) MuxInterval() time.Duration {
 
 type Handler struct {
 	ConnectTimeoutMS int `json:"connectTimeout"`
+	RetryIntervalMS  int `json:"retryInterval"`
+	RetryAttempts    int `json:"retryAttempts"`
 	DownloadAttempts int `json:"downloadAttempts"`
 }
 
 func (cfg Handler) ConnectTimeout() time.Duration {
 	return time.Duration(cfg.ConnectTimeoutMS) * time.Millisecond
+}
+
+func (cfg Handler) RetryInterval() time.Duration {
+	return time.Duration(cfg.RetryIntervalMS) * time.Millisecond
 }
 
 type Socks struct {

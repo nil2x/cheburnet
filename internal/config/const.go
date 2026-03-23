@@ -41,6 +41,8 @@ func defaultConfig() Config {
 		},
 		Handler: Handler{
 			ConnectTimeoutMS: 10 * 1000,
+			RetryIntervalMS:  10 * 1000,
+			RetryAttempts:    3,
 			DownloadAttempts: 3,
 		},
 		Socks: Socks{

@@ -24,7 +24,7 @@ import (
 type reassemblyBuffer struct {
 	cfg     config.Config
 	ses     *session.Session
-	mu      *sync.Mutex
+	mu      sync.Mutex
 	closed  bool
 	temp    []datagram.Datagram
 	data    map[datagram.Num]datagram.Datagram
@@ -40,7 +40,7 @@ func openReassemblyBuffer(cfg config.Config, ses *session.Session) *reassemblyBu
 	rb := &reassemblyBuffer{
 		cfg:     cfg,
 		ses:     ses,
-		mu:      &sync.Mutex{},
+		mu:      sync.Mutex{},
 		closed:  false,
 		temp:    []datagram.Datagram{},
 		data:    map[datagram.Num]datagram.Datagram{},
@@ -108,7 +108,12 @@ func (rb *reassemblyBuffer) push(dg datagram.Datagram) error {
 }
 
 func (rb *reassemblyBuffer) listen() {
-	retryInterval := 10 * time.Second
+	retryInterval := rb.cfg.Handler.RetryInterval()
+	var retryCh <-chan time.Time
+
+	if retryInterval > 0 {
+		retryCh = time.After(retryInterval)
+	}
 
 	for {
 		stop := false
@@ -116,7 +121,7 @@ func (rb *reassemblyBuffer) listen() {
 		select {
 		case <-rb.signal:
 			stop = rb.handle()
-		case <-time.After(retryInterval):
+		case <-retryCh:
 			stop = rb.retry()
 		case <-rb.ses.OnClose:
 			return
@@ -163,6 +168,10 @@ func (rb *reassemblyBuffer) retry() bool {
 	rb.mu.Lock()
 	defer rb.mu.Unlock()
 
+	if rb.cfg.Handler.RetryAttempts == 0 {
+		return false
+	}
+
 	if _, exists := rb.data[rb.next]; exists {
 		return false
 	}
@@ -174,7 +183,7 @@ func (rb *reassemblyBuffer) retry() bool {
 	}
 
 	if rb.next == rb.pending {
-		if rb.retries >= 3 {
+		if rb.retries >= rb.cfg.Handler.RetryAttempts {
 			return true
 		}
 
