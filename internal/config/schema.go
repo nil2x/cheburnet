@@ -49,7 +49,12 @@ func (cfg Session) MuxInterval() time.Duration {
 }
 
 type Handler struct {
+	ConnectTimeoutMS int `json:"connectTimeout"`
 	DownloadAttempts int `json:"downloadAttempts"`
+}
+
+func (cfg Handler) ConnectTimeout() time.Duration {
+	return time.Duration(cfg.ConnectTimeoutMS) * time.Millisecond
 }
 
 type Socks struct {

@@ -30,7 +30,7 @@ func (e event) String() string {
 	return fmt.Sprintf("name=%v club=%v", e.name, e.club.Name)
 }
 
-// handleEvent accepts event that contain datagram(s) data, extracts them and
+// handleEvent accepts event that contain datagrams data, extracts them and
 // executes their processing using reassemblyBuffer. Loopback and zero datagrams
 // are skipped.
 //
@@ -239,7 +239,7 @@ func handleEncoded(s string) (datagram.Datagram, error) {
 	return dg, nil
 }
 
-var handleDatagramMu = &sync.Mutex{}
+var handleDatagramMu = sync.Mutex{}
 var handleDatagramBuffers = map[datagram.Ses]*reassemblyBuffer{}
 
 func handleDatagram(cfg config.Config, vkC *api.VKClient, storageC *api.StorageClient, dg datagram.Datagram) error {
@@ -298,7 +298,7 @@ func handleCommand(cfg config.Config, ses *session.Session, dg datagram.Datagram
 	case datagram.CommandForward:
 		err = handleForward(ses, dg)
 	case datagram.CommandClose:
-		handleClose(ses)
+		err = handleClose(ses)
 	case datagram.CommandRetry:
 		err = handleRetry(ses, dg)
 	default:
@@ -326,8 +326,15 @@ func handleConnect(cfg config.Config, ses *session.Session, dg datagram.Datagram
 	}
 
 	addr := config.Address(pld).String()
-	timeout := 10 * time.Second
-	conn, err := net.DialTimeout("tcp", addr, timeout)
+	timeout := cfg.Handler.ConnectTimeout()
+
+	var conn net.Conn
+
+	if timeout > 0 {
+		conn, err = net.DialTimeout("tcp", addr, timeout)
+	} else {
+		conn, err = net.Dial("tcp", addr)
+	}
 
 	if err != nil {
 		return err
@@ -346,8 +353,10 @@ func handleForward(ses *session.Session, dg datagram.Datagram) error {
 	return ses.WriteLocal(dg.Payload)
 }
 
-func handleClose(ses *session.Session) {
+func handleClose(ses *session.Session) error {
 	ses.Close()
+
+	return nil
 }
 
 func handleRetry(ses *session.Session, dg datagram.Datagram) error {
@@ -376,7 +385,7 @@ func Clear(ctx context.Context) error {
 		select {
 		case <-ctx.Done():
 			return nil
-		case <-time.After(5 * time.Minute):
+		case <-time.After(2 * time.Minute):
 			handleDatagramMu.Lock()
 
 			for ses, buffer := range handleDatagramBuffers {

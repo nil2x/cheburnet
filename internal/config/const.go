@@ -40,6 +40,7 @@ func defaultConfig() Config {
 			MethodsEnabled: map[int]bool{},
 		},
 		Handler: Handler{
+			ConnectTimeoutMS: 10 * 1000,
 			DownloadAttempts: 3,
 		},
 		Socks: Socks{
