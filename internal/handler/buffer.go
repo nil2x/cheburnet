@@ -109,13 +109,14 @@ func (rb *reassemblyBuffer) push(dg datagram.Datagram) error {
 
 func (rb *reassemblyBuffer) listen() {
 	retryInterval := rb.cfg.Handler.RetryInterval()
-	var retryCh <-chan time.Time
-
-	if retryInterval > 0 {
-		retryCh = time.After(retryInterval)
-	}
 
 	for {
+		var retryCh <-chan time.Time
+
+		if retryInterval > 0 {
+			retryCh = time.After(retryInterval)
+		}
+
 		stop := false
 
 		select {
