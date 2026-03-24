@@ -217,9 +217,6 @@ func (p *planner) create(dg datagram.Datagram) (sendingPlan, error) {
 }
 
 func (p *planner) createPlan(dg datagram.Datagram, num int) (sendingPlan, error) {
-	// Try to detect if TLS handshake is in progress.
-	isHandshakeTLS := (num < 4) && (len(dg.Payload) < 10000)
-
 	smallMethods := []sendingMethod{
 		methodMessage,
 		methodPost,
@@ -231,6 +228,9 @@ func (p *planner) createPlan(dg datagram.Datagram, num int) (sendingPlan, error)
 	bigMethods := []sendingMethod{
 		methodDoc,
 	}
+
+	// Try to detect if TLS handshake is in progress.
+	isHandshakeTLS := (num <= 3) && (len(dg.Payload) <= 10000)
 
 	if !isHandshakeTLS {
 		if methodsEnabled[methodQR] {
@@ -248,6 +248,8 @@ func (p *planner) createPlan(dg datagram.Datagram, num int) (sendingPlan, error)
 		smallMethods = append(smallMethods, methodTopicComment)
 	}
 
+	// methodStorage can't be used for CommandConnect because storage listener
+	// is not able to detect first command of the session.
 	if dg.Command != datagram.CommandConnect {
 		smallMethods = append(smallMethods, methodStorage, methodStorage)
 	}
@@ -271,7 +273,7 @@ func (p *planner) createPlan(dg datagram.Datagram, num int) (sendingPlan, error)
 	}
 	maxSmallForwardLen := min(methodsMaxLenEncoded[methodQR], methodsMaxLenEncoded[methodPhotoComment])
 
-	// small datagrams goes this way
+	// Small datagrams goes this way.
 	if dg.Command != datagram.CommandForward || dg.LenEncoded() <= maxSmallForwardLen {
 		if dg.Number == 0 {
 			dg.Number = p.session.nextNumber()
@@ -286,7 +288,7 @@ func (p *planner) createPlan(dg datagram.Datagram, num int) (sendingPlan, error)
 		return plan, nil
 	}
 
-	// numbered datagrams (typically, from history) goes this way
+	// Numbered datagrams (typically, from history) goes this way.
 	if dg.Number != 0 {
 		available := []sendingMethod{}
 
@@ -309,7 +311,7 @@ func (p *planner) createPlan(dg datagram.Datagram, num int) (sendingPlan, error)
 		return plan, nil
 	}
 
-	// large datagrams whose number is zero (typically, forwards) goes this way
+	// Large datagrams whose number is zero (typically, forwards) goes this way.
 	for len(dg.Payload) > 0 {
 		var method sendingMethod
 
@@ -334,8 +336,7 @@ func (p *planner) createPlan(dg datagram.Datagram, num int) (sendingPlan, error)
 			dg.Payload = nil
 		}
 
-		fgNum := p.session.nextNumber()
-		fg := datagram.New(dg.Session, fgNum, dg.Command, chunks[0])
+		fg := datagram.New(dg.Session, p.session.nextNumber(), dg.Command, chunks[0])
 
 		if fg.LenEncoded() > methodsMaxLenEncoded[method] {
 			return sendingPlan{}, errors.New("invalid payload logic")
