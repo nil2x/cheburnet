@@ -18,6 +18,7 @@ var (
 	errSessionClosed     = errors.New("session is closed")
 	errSessionBufferFull = errors.New("session buffer is full")
 	errSessionPeerNil    = errors.New("session peer is nil")
+	errSessionMismatch   = errors.New("session mismatch")
 )
 
 type ConnWriteFunc func(net.Conn, []byte) error
@@ -296,7 +297,7 @@ func (s *Session) WriteRemote(dg datagram.Datagram) error {
 	}
 
 	if clone.Session != s.ID {
-		return fmt.Errorf("datagram (id=%v) and session (id=%v) mismatch", clone.Session, s.ID)
+		return errSessionMismatch
 	}
 
 	s.activeAt = time.Now()
