@@ -366,17 +366,25 @@ func handleRetry(ses *session.Session, dg datagram.Datagram) error {
 		return err
 	}
 
+	var err error
 	dg, exists := ses.GetHistory(pld.Number)
 
-	if exists {
-		if err := ses.WriteRemote(dg); err != nil {
-			return err
+	if ses.IsClosed() {
+		if exists {
+			err = session.WriteRemote(ses, dg)
+		} else {
+			dg := datagram.New(0, pld.Number, datagram.CommandClose, nil)
+			err = session.WriteRemote(ses, dg)
 		}
 	} else {
-		slog.Debug("handler: history miss", "ses", ses, "number", pld.Number)
+		if exists {
+			err = ses.WriteRemote(dg)
+		} else {
+			slog.Debug("handler: history miss", "ses", ses, "number", pld.Number)
+		}
 	}
 
-	return nil
+	return err
 }
 
 // Clear periodically clears the global state.

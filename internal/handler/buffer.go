@@ -99,7 +99,12 @@ func (rb *reassemblyBuffer) push(dg datagram.Datagram) error {
 	rb.mu.Lock()
 	defer rb.mu.Unlock()
 
+	if dg.Session != rb.ses.ID {
+		return errors.New("buffer mismatch")
+	}
+
 	if rb.closed {
+		// At this stage session already closed. Safe to ignore it.
 		if dg.Command == datagram.CommandClose {
 			return nil
 		}
@@ -111,11 +116,19 @@ func (rb *reassemblyBuffer) push(dg datagram.Datagram) error {
 			return nil
 		}
 
-		return errors.New("buffer is closed")
-	}
+		// Peer A finished and closed, but peer B didn't receive some of peer A data.
+		// In this case, peer A should send its history even if it is closed.
+		if dg.Command == datagram.CommandRetry {
+			go func() {
+				if err := handleCommand(rb.cfg, rb.ses, dg); err != nil {
+					slog.Error("handler: command", "dg", dg, "err", err)
+				}
+			}()
 
-	if dg.Session != rb.ses.ID {
-		return errors.New("buffer mismatch")
+			return nil
+		}
+
+		return errors.New("buffer is closed")
 	}
 
 	rb.temp = append(rb.temp, dg)

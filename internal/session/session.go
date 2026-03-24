@@ -358,3 +358,37 @@ func (s *Session) nextNumber() datagram.Num {
 
 	return s.number
 }
+
+// WriteRemote implements same logic as Session.WriteRemote, but with few key differences
+// that are described next. Use this function only when ses.WriteRemote can't be used.
+//
+// This function is blocking and may take time to complete.
+//
+// This function does not modify session state. For example, ses may become inactive
+// even if you sending datagrams using this function.
+//
+// This function allows to send datagrams over a closed session. When ses is opened,
+// you should use ses.WriteRemote instead of this function.
+func WriteRemote(ses *Session, dg datagram.Datagram) error {
+	clone := dg.Clone()
+
+	if clone.Session == 0 {
+		clone.Session = ses.ID
+	}
+
+	if clone.Session != ses.ID {
+		return errSessionMismatch
+	}
+
+	plan, err := ses.planner.create(clone)
+
+	if err != nil {
+		return err
+	}
+
+	if err := ses.executor.execute(plan); err != nil {
+		return err
+	}
+
+	return nil
+}
