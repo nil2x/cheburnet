@@ -3,6 +3,7 @@ package session
 import (
 	"errors"
 	"math/rand"
+	"sync"
 
 	"github.com/nil2x/cheburnet/internal/config"
 	"github.com/nil2x/cheburnet/internal/datagram"
@@ -168,6 +169,8 @@ type planner struct {
 	cfg      config.Config
 	session  *Session
 	executor executorI
+	mu       sync.Mutex
+	number   int
 }
 
 func newPlanner(cfg config.Config, s *Session, e executorI) *planner {
@@ -175,11 +178,20 @@ func newPlanner(cfg config.Config, s *Session, e executorI) *planner {
 		cfg:      cfg,
 		session:  s,
 		executor: e,
+		mu:       sync.Mutex{},
+		number:   0,
 	}
 }
 
 func (p *planner) create(dg datagram.Datagram) (sendingPlan, error) {
-	plan, err := p.createPlan(dg)
+	p.mu.Lock()
+
+	p.number++
+	num := p.number
+
+	p.mu.Unlock()
+
+	plan, err := p.createPlan(dg, num)
 
 	if err != nil {
 		return sendingPlan{}, err
@@ -199,7 +211,10 @@ func (p *planner) create(dg datagram.Datagram) (sendingPlan, error) {
 	return plan, nil
 }
 
-func (p *planner) createPlan(dg datagram.Datagram) (sendingPlan, error) {
+func (p *planner) createPlan(dg datagram.Datagram, num int) (sendingPlan, error) {
+	// Try to detect if TLS handshake is in progress.
+	isHandshakeTLS := (num < 4) && (len(dg.Payload) < 10000)
+
 	smallMethods := []sendingMethod{
 		methodMessage,
 		methodPost,
@@ -212,10 +227,12 @@ func (p *planner) createPlan(dg datagram.Datagram) (sendingPlan, error) {
 		methodDoc,
 	}
 
-	if methodsEnabled[methodQR] {
-		smallMethods = append(smallMethods, methodQR)
-	} else if methodsEnabled[methodCaption] {
-		smallMethods = append(smallMethods, methodCaption)
+	if !isHandshakeTLS {
+		if methodsEnabled[methodQR] {
+			smallMethods = append(smallMethods, methodQR)
+		} else if methodsEnabled[methodCaption] {
+			smallMethods = append(smallMethods, methodCaption)
+		}
 	}
 
 	if p.executor.havePosts() {
@@ -289,7 +306,17 @@ func (p *planner) createPlan(dg datagram.Datagram) (sendingPlan, error) {
 
 	// large datagrams whose number is zero (typically, forwards) goes this way
 	for len(dg.Payload) > 0 {
-		method := randElem(bigMethods)
+		var method sendingMethod
+
+		// During TLS handshake a datagram should be sent as fast as possible.
+		// It is needed because some sites enforce too short TLS handshake timeout.
+		// In case of datagram delay on remote side a site may close the connection.
+		if isHandshakeTLS {
+			method = randElem(smallMethods)
+		} else {
+			method = randElem(bigMethods)
+		}
+
 		chunks := transform.BytesToChunks(dg.Payload, methodsMaxLenPayload[method], 2)
 
 		if len(chunks) == 0 || len(chunks) > 2 {
@@ -302,8 +329,8 @@ func (p *planner) createPlan(dg datagram.Datagram) (sendingPlan, error) {
 			dg.Payload = nil
 		}
 
-		num := p.session.nextNumber()
-		fg := datagram.New(dg.Session, num, dg.Command, chunks[0])
+		fgNum := p.session.nextNumber()
+		fg := datagram.New(dg.Session, fgNum, dg.Command, chunks[0])
 
 		if fg.LenEncoded() > methodsMaxLenEncoded[method] {
 			return sendingPlan{}, errors.New("invalid payload logic")
