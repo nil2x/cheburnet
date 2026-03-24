@@ -70,7 +70,8 @@ func IsFloodControl(err error) bool {
 	s := strings.ToLower(err.Error())
 	is :=
 		strings.Contains(s, "flood control") ||
-			strings.Contains(s, "too many requests per second")
+			strings.Contains(s, "too many requests per second") ||
+			strings.Contains(s, "captcha needed")
 
 	return is
 }
