@@ -295,6 +295,10 @@ func (s *Session) WriteRemote(dg datagram.Datagram) error {
 		clone.Session = s.ID
 	}
 
+	if clone.Session != s.ID {
+		return fmt.Errorf("datagram (id=%v) and session (id=%v) mismatch", clone.Session, s.ID)
+	}
+
 	s.activeAt = time.Now()
 
 	if dg.Command == datagram.CommandForward {

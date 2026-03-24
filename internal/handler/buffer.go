@@ -2,6 +2,7 @@ package handler
 
 import (
 	"errors"
+	"fmt"
 	"log/slog"
 	"sync"
 	"time"
@@ -115,7 +116,7 @@ func (rb *reassemblyBuffer) push(dg datagram.Datagram) error {
 	}
 
 	if dg.Session != rb.ses.ID {
-		return errors.New("datagram and session mismatch")
+		return fmt.Errorf("datagram (id=%v) and buffer (id=%v) mismatch", dg.Session, rb.ses.ID)
 	}
 
 	rb.temp = append(rb.temp, dg)
