@@ -291,10 +291,6 @@ func handleCommand(cfg config.Config, ses *session.Session, dg datagram.Datagram
 	switch dg.Command {
 	case datagram.CommandConnect:
 		err = handleConnect(cfg, ses, dg)
-
-		if err == nil {
-			slog.Info("handler: forwarding", "ses", ses)
-		}
 	case datagram.CommandForward:
 		err = handleForward(ses, dg)
 	case datagram.CommandClose:
@@ -303,6 +299,10 @@ func handleCommand(cfg config.Config, ses *session.Session, dg datagram.Datagram
 		err = handleRetry(ses, dg)
 	default:
 		err = errors.New("unsupported")
+	}
+
+	if dg.Command == datagram.CommandConnect && err == nil {
+		slog.Info("handler: forwarding", "ses", ses)
 	}
 
 	if err != nil {
