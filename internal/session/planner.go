@@ -271,10 +271,9 @@ func (p *planner) createPlan(dg datagram.Datagram, num int) (sendingPlan, error)
 		encoded:   []string{},
 		strings:   []string{},
 	}
-	maxSmallForwardLen := min(methodsMaxLenEncoded[methodQR], methodsMaxLenEncoded[methodPhotoComment])
 
 	// Small datagrams goes this way.
-	if dg.Command != datagram.CommandForward || dg.LenEncoded() <= maxSmallForwardLen {
+	if dg.Command != datagram.CommandForward {
 		if dg.Number == 0 {
 			dg.Number = p.session.nextNumber()
 		}
@@ -288,18 +287,28 @@ func (p *planner) createPlan(dg datagram.Datagram, num int) (sendingPlan, error)
 		return plan, nil
 	}
 
+	const smallForwardLen = 4096
+
 	// Numbered datagrams (typically, from history) goes this way.
 	if dg.Number != 0 {
 		available := []sendingMethod{}
 
-		for _, m := range bigMethods {
+		for _, m := range smallMethods {
 			if dg.LenEncoded() <= methodsMaxLenEncoded[m] {
 				available = append(available, m)
 			}
 		}
 
+		if dg.LenEncoded() > smallForwardLen || len(available) == 0 {
+			for _, m := range bigMethods {
+				if dg.LenEncoded() <= methodsMaxLenEncoded[m] {
+					available = append(available, m)
+				}
+			}
+		}
+
 		if len(available) == 0 {
-			return sendingPlan{}, errors.New("no big methods available")
+			return sendingPlan{}, errors.New("no numbered methods available")
 		}
 
 		method := randElem(available)
@@ -311,7 +320,7 @@ func (p *planner) createPlan(dg datagram.Datagram, num int) (sendingPlan, error)
 		return plan, nil
 	}
 
-	// Large datagrams whose number is zero (typically, forwards) goes this way.
+	// Forwards that can be split goes this way.
 	for len(dg.Payload) > 0 {
 		var method sendingMethod
 
@@ -319,6 +328,8 @@ func (p *planner) createPlan(dg datagram.Datagram, num int) (sendingPlan, error)
 		// It is needed because some sites enforce too short TLS handshake timeout.
 		// In case of datagram delay on remote side a site may close the connection.
 		if isHandshakeTLS {
+			method = randElem(smallMethods)
+		} else if dg.LenEncoded() <= smallForwardLen {
 			method = randElem(smallMethods)
 		} else {
 			method = randElem(bigMethods)
