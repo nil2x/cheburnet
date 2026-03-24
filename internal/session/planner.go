@@ -53,22 +53,6 @@ func initPlanner(cfg config.Config) {
 		methodTopic:         false && !cfg.API.Unathorized, // disabled, captcha control
 		methodTopicComment:  false && !cfg.API.Unathorized, // disabled, captcha control
 	}
-	methodsEncoding = map[sendingMethod]transform.Base85Charset{
-		methodMessage:       transform.Base85CharsetRU,
-		methodPost:          transform.Base85CharsetRU,
-		methodPostComment:   transform.Base85CharsetRU,
-		methodDoc:           transform.Base85CharsetASCII,
-		methodQR:            transform.Base85CharsetASCII,
-		methodCaption:       transform.Base85CharsetRU,
-		methodStorage:       transform.Base85CharsetASCII,
-		methodDescription:   transform.Base85CharsetASCII,
-		methodWebsite:       transform.Base85CharsetASCII,
-		methodVideoComment:  transform.Base85CharsetRU,
-		methodPhotoComment:  transform.Base85CharsetRU,
-		methodMarketComment: transform.Base85CharsetRU,
-		methodTopic:         transform.Base85CharsetRU,
-		methodTopicComment:  transform.Base85CharsetRU,
-	}
 	methodsMaxLenEncoded = map[sendingMethod]int{
 		methodMessage:       4096,
 		methodPost:          16000,
@@ -85,6 +69,31 @@ func initPlanner(cfg config.Config) {
 		methodTopic:         4096,
 		methodTopicComment:  4096,
 	}
+
+	for method, enabled := range cfg.Session.MethodsEnabled {
+		methodsEnabled[sendingMethod(method)] = enabled
+	}
+
+	for method, len := range cfg.Session.MethodsMaxLenEncoded {
+		methodsMaxLenEncoded[sendingMethod(method)] = len
+	}
+
+	methodsEncoding = map[sendingMethod]transform.Base85Charset{
+		methodMessage:       transform.Base85CharsetRU,
+		methodPost:          transform.Base85CharsetRU,
+		methodPostComment:   transform.Base85CharsetRU,
+		methodDoc:           transform.Base85CharsetASCII,
+		methodQR:            transform.Base85CharsetASCII,
+		methodCaption:       transform.Base85CharsetRU,
+		methodStorage:       transform.Base85CharsetASCII,
+		methodDescription:   transform.Base85CharsetASCII,
+		methodWebsite:       transform.Base85CharsetASCII,
+		methodVideoComment:  transform.Base85CharsetRU,
+		methodPhotoComment:  transform.Base85CharsetRU,
+		methodMarketComment: transform.Base85CharsetRU,
+		methodTopic:         transform.Base85CharsetRU,
+		methodTopicComment:  transform.Base85CharsetRU,
+	}
 	methodsMaxLenPayload = map[sendingMethod]int{
 		methodMessage:       datagram.CalcMaxLenPayload(methodsMaxLenEncoded[methodMessage]),
 		methodPost:          datagram.CalcMaxLenPayload(methodsMaxLenEncoded[methodPost]),
@@ -100,10 +109,6 @@ func initPlanner(cfg config.Config) {
 		methodMarketComment: datagram.CalcMaxLenPayload(methodsMaxLenEncoded[methodMarketComment]),
 		methodTopic:         datagram.CalcMaxLenPayload(methodsMaxLenEncoded[methodTopic]),
 		methodTopicComment:  datagram.CalcMaxLenPayload(methodsMaxLenEncoded[methodTopicComment]),
-	}
-
-	for method, enabled := range cfg.Session.MethodsEnabled {
-		methodsEnabled[sendingMethod(method)] = enabled
 	}
 }
 

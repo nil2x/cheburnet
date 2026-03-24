@@ -32,12 +32,13 @@ type DNS struct {
 }
 
 type Session struct {
-	TimeoutMS      int          `json:"timeout"`
-	Secret         string       `json:"secret"`
-	SecretKey      []byte       `json:"-"`
-	UploadAttempts int          `json:"uploadAttempts"`
-	MuxIntervalMS  int          `json:"muxInterval"`
-	MethodsEnabled map[int]bool `json:"methodsEnabled"`
+	TimeoutMS            int          `json:"timeout"`
+	Secret               string       `json:"secret"`
+	SecretKey            []byte       `json:"-"`
+	UploadAttempts       int          `json:"uploadAttempts"`
+	MuxIntervalMS        int          `json:"muxInterval"`
+	MethodsEnabled       map[int]bool `json:"methodsEnabled"`
+	MethodsMaxLenEncoded map[int]int  `json:"methodsMaxLenEncoded"`
 }
 
 func (cfg Session) Timeout() time.Duration {

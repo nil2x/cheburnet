@@ -33,11 +33,12 @@ func defaultConfig() Config {
 			Level: 0,
 		},
 		Session: Session{
-			TimeoutMS:      30 * 1000,
-			Secret:         "",
-			UploadAttempts: 3,
-			MuxIntervalMS:  500,
-			MethodsEnabled: map[int]bool{},
+			TimeoutMS:            30 * 1000,
+			Secret:               "",
+			UploadAttempts:       3,
+			MuxIntervalMS:        500,
+			MethodsEnabled:       map[int]bool{},
+			MethodsMaxLenEncoded: map[int]int{},
 		},
 		Handler: Handler{
 			ConnectTimeoutMS: 10 * 1000,
