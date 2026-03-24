@@ -72,6 +72,7 @@ func NextID() datagram.Ses {
 func Clear(ctx context.Context) error {
 	timeoutInterval := 10 * time.Second
 	deleteInterval := 2 * time.Minute
+	deleteAge := 2 * time.Minute
 
 	var wg sync.WaitGroup
 
@@ -113,7 +114,7 @@ func Clear(ctx context.Context) error {
 				sessionsMu.Lock()
 
 				for id, ses := range sessions {
-					if ses.IsClosed() {
+					if ses.IsClosed() && ses.SinceClose() > deleteAge {
 						delete(sessions, id)
 					}
 				}

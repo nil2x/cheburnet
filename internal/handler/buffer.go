@@ -22,32 +22,34 @@ import (
 //
 // After session close the buffer is automatically closed.
 type reassemblyBuffer struct {
-	cfg     config.Config
-	ses     *session.Session
-	mu      sync.Mutex
-	closed  bool
-	temp    []datagram.Datagram
-	data    map[datagram.Num]datagram.Datagram
-	next    datagram.Num
-	pending datagram.Num
-	retries int
-	signal  chan struct{}
+	cfg      config.Config
+	ses      *session.Session
+	mu       sync.Mutex
+	closed   bool
+	closedAt time.Time
+	temp     []datagram.Datagram
+	data     map[datagram.Num]datagram.Datagram
+	next     datagram.Num
+	pending  datagram.Num
+	retries  int
+	signal   chan struct{}
 }
 
 func openReassemblyBuffer(cfg config.Config, ses *session.Session) *reassemblyBuffer {
 	slog.Debug("handler: open", "ses", ses)
 
 	rb := &reassemblyBuffer{
-		cfg:     cfg,
-		ses:     ses,
-		mu:      sync.Mutex{},
-		closed:  false,
-		temp:    []datagram.Datagram{},
-		data:    map[datagram.Num]datagram.Datagram{},
-		next:    1,
-		pending: 0,
-		retries: 0,
-		signal:  make(chan struct{}, 1),
+		cfg:      cfg,
+		ses:      ses,
+		mu:       sync.Mutex{},
+		closed:   false,
+		closedAt: time.Time{},
+		temp:     []datagram.Datagram{},
+		data:     map[datagram.Num]datagram.Datagram{},
+		next:     1,
+		pending:  0,
+		retries:  0,
+		signal:   make(chan struct{}, 1),
 	}
 
 	go func() {
@@ -72,6 +74,7 @@ func (rb *reassemblyBuffer) close() {
 	clear(rb.data)
 
 	rb.closed = true
+	rb.closedAt = time.Now()
 }
 
 func (rb *reassemblyBuffer) isClosed() bool {
@@ -79,6 +82,17 @@ func (rb *reassemblyBuffer) isClosed() bool {
 	defer rb.mu.Unlock()
 
 	return rb.closed
+}
+
+func (rb *reassemblyBuffer) sinceClose() time.Duration {
+	rb.mu.Lock()
+	defer rb.mu.Unlock()
+
+	if rb.closedAt.IsZero() {
+		return 0
+	}
+
+	return time.Since(rb.closedAt)
 }
 
 func (rb *reassemblyBuffer) push(dg datagram.Datagram) error {

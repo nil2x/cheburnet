@@ -50,6 +50,7 @@ type Session struct {
 	number       datagram.Num
 	history      map[datagram.Num]datagram.Datagram
 	openedAt     time.Time
+	closedAt     time.Time
 	activeAt     time.Time
 	forwardedIn  int
 	forwardedOut int
@@ -79,6 +80,7 @@ func Open(cfg config.Config, vkC *api.VKClient, storageC *api.StorageClient, id 
 		number:       0,
 		history:      make(map[datagram.Num]datagram.Datagram),
 		openedAt:     now,
+		closedAt:     time.Time{},
 		activeAt:     now,
 		forwardedIn:  0,
 		forwardedOut: 0,
@@ -157,6 +159,7 @@ func (s *Session) Close() {
 	}
 
 	close(s.OnClose)
+	s.closedAt = time.Now()
 
 	s.mu.Unlock()
 }
@@ -172,6 +175,19 @@ func (s *Session) IsClosed() bool {
 	defer s.mu.Unlock()
 
 	return s.isClosed
+}
+
+// SinceClose returns duration since Close is completed.
+// If Close wasn't called or not yet completed, zero is returned.
+func (s *Session) SinceClose() time.Duration {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	if s.closedAt.IsZero() {
+		return 0
+	}
+
+	return time.Since(s.closedAt)
 }
 
 // IsInactive returns if there was no any write operations for the configured

@@ -381,15 +381,18 @@ func handleRetry(ses *session.Session, dg datagram.Datagram) error {
 
 // Clear periodically clears the global state.
 func Clear(ctx context.Context) error {
+	deleteInterval := 2 * time.Minute
+	deleteAge := 2 * time.Minute
+
 	for {
 		select {
 		case <-ctx.Done():
 			return nil
-		case <-time.After(2 * time.Minute):
+		case <-time.After(deleteInterval):
 			handleDatagramMu.Lock()
 
 			for ses, buffer := range handleDatagramBuffers {
-				if buffer.isClosed() {
+				if buffer.isClosed() && buffer.sinceClose() > deleteAge {
 					delete(handleDatagramBuffers, ses)
 				}
 			}
