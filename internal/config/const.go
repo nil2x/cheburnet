@@ -41,9 +41,9 @@ func defaultConfig() Config {
 			MethodsMaxLenEncoded: map[int]int{},
 		},
 		Handler: Handler{
-			ConnectTimeoutMS: 10 * 1000,
+			ConnectTimeoutMS: 7 * 1000,
 			RetryIntervalMS:  10 * 1000,
-			RetryAttempts:    3,
+			RetryAttempts:    2,
 			DownloadAttempts: 3,
 		},
 		Socks: Socks{
@@ -55,7 +55,7 @@ func defaultConfig() Config {
 			ReadSize:          8 * 1024,
 			ReadTimeoutMS:     0,
 			ReadRate:          1 * 1024 * 1024,
-			WriteTimeoutMS:    10 * 1000,
+			WriteTimeoutMS:    7 * 1000,
 			ForwardSize:       1 * 1024 * 1024,
 			ForwardIntervalMS: 500,
 		},
