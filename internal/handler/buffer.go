@@ -90,6 +90,13 @@ func (rb *reassemblyBuffer) push(dg datagram.Datagram) error {
 			return nil
 		}
 
+		// Most likely it is TLS close_notify alert. In TLS 1.3 peer A may send
+		// close_notify and immediately close the connection without waiting for
+		// peer B close_notify response. Let's also ignore it, to not flood the log.
+		if (dg.Command == datagram.CommandForward) && (len(dg.Payload) == 24) {
+			return nil
+		}
+
 		return errors.New("buffer is closed")
 	}
 
