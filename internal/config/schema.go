@@ -6,7 +6,7 @@ import (
 	"time"
 )
 
-// Config holds configuration of program packages.
+// Config holds configuration of the program.
 // See README for description of some of the fields.
 type Config struct {
 	Log     Log     `json:"log"`
@@ -28,7 +28,12 @@ type Log struct {
 
 type DNS struct {
 	Address
-	Provider string `json:"provider"`
+	Provider  string `json:"provider"`
+	TimeoutMS int    `json:"timeout"`
+}
+
+func (cfg DNS) Timeout() time.Duration {
+	return time.Duration(cfg.TimeoutMS) * time.Millisecond
 }
 
 type Session struct {
@@ -88,7 +93,7 @@ func (cfg Socks) ForwardInterval() time.Duration {
 }
 
 type API struct {
-	TimeoutMS   int    `json:"-"`
+	TimeoutMS   int    `json:"timeout"`
 	Unathorized bool   `json:"unathorized"`
 	UserAgent   string `json:"userAgent"`
 }
@@ -99,8 +104,8 @@ func (cfg API) Timeout() time.Duration {
 
 type QR struct {
 	ZBarPath   string `json:"zbarPath"`
-	ImageSize  int    `json:"-"`
-	ImageLevel int    `json:"-"`
+	ImageSize  int    `json:"imageSize"`
+	ImageLevel int    `json:"imageLevel"`
 	SaveDir    string `json:"saveDir"`
 }
 

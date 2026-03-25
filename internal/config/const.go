@@ -30,7 +30,17 @@ func BuildInfo() string {
 func defaultConfig() Config {
 	return Config{
 		Log: Log{
-			Level: 0,
+			Level:   0,
+			Output:  "",
+			Payload: false,
+		},
+		DNS: DNS{
+			Address: Address{
+				Host: "",
+				Port: 0,
+			},
+			Provider:  "",
+			TimeoutMS: 5 * 1000,
 		},
 		Session: Session{
 			TimeoutMS:            30 * 1000,
@@ -60,13 +70,15 @@ func defaultConfig() Config {
 			ForwardIntervalMS: 500,
 		},
 		API: API{
-			TimeoutMS: 5 * 1000,
-			UserAgent: "",
+			TimeoutMS:   5 * 1000,
+			Unathorized: false,
+			UserAgent:   "",
 		},
 		QR: QR{
 			ZBarPath:   "zbarimg",
 			ImageSize:  512,
 			ImageLevel: 1,
+			SaveDir:    "",
 		},
 	}
 }

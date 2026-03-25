@@ -11,7 +11,6 @@ import (
 	"os"
 	"strconv"
 	"strings"
-	"time"
 )
 
 // Parse parses config values from all supported places and merges it.
@@ -232,7 +231,7 @@ func SetupDNS(cfg DNS) error {
 	}
 
 	d := net.Dialer{
-		Timeout: time.Second * 3,
+		Timeout: cfg.Timeout(),
 	}
 	addr := cfg.Address.String()
 
