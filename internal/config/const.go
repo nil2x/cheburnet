@@ -40,7 +40,7 @@ func defaultConfig() Config {
 				Port: 0,
 			},
 			Provider:  "",
-			TimeoutMS: 5 * 1000,
+			TimeoutMS: 3 * 1000,
 		},
 		Session: Session{
 			TimeoutMS:            30 * 1000,
