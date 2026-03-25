@@ -118,7 +118,7 @@ func (dg Datagram) Clone() Datagram {
 //
 // CalcMaxLen includes header length in calculation. Use CalcMaxLenPayload to get
 // only payload length. Knowing maximum payload length, you can use it in New and
-// after encoding you will have number of characters that it equal or less to
+// after encoding you will have number of characters that is equal or less to
 // maxLenEncoded.
 //
 // "maximum" because encoding length is varying based on datagram length in bytes.
@@ -156,8 +156,8 @@ func New(ses Ses, num Num, cmd Cmd, pld []byte) Datagram {
 	}
 }
 
-// Encode encodes datagram using given charset. Returned value is ready to be sent.
-func Encode(dg Datagram, set transform.Base85Charset) string {
+// Marshal returns byte representation of datagram. Returned value is ready to be sent.
+func Marshal(dg Datagram) []byte {
 	data := make([]byte, 0, dg.Len())
 
 	data = binary.BigEndian.AppendUint16(data, uint16(dg.Version))
@@ -171,19 +171,11 @@ func Encode(dg Datagram, set transform.Base85Charset) string {
 	crc := crc32.ChecksumIEEE(data)
 	binary.BigEndian.PutUint32(data[2:6], crc)
 
-	s := transform.ToBase85(data, set)
-
-	return s
+	return data
 }
 
-// Decode decodes encoded datagram and verifies its integrity.
-func Decode(s string) (Datagram, error) {
-	data, err := transform.FromBase85(s)
-
-	if err != nil {
-		return Datagram{}, err
-	}
-
+// Unmarshal transforms byte data back into datagram and verifies its integrity.
+func Unmarshal(data []byte) (Datagram, error) {
 	if len(data) < HeaderLen {
 		return Datagram{}, ErrMalformed
 	}
@@ -211,6 +203,31 @@ func Decode(s string) (Datagram, error) {
 		Number:   Num(num),
 		Command:  Cmd(cmd),
 		Payload:  pld,
+	}
+
+	return dg, nil
+}
+
+// Encode encodes datagram using given charset. Returned value is ready to be sent.
+func Encode(dg Datagram, set transform.Base85Charset) string {
+	data := Marshal(dg)
+	s := transform.ToBase85(data, set)
+
+	return s
+}
+
+// Decode decodes encoded datagram and verifies its integrity.
+func Decode(s string) (Datagram, error) {
+	data, err := transform.FromBase85(s)
+
+	if err != nil {
+		return Datagram{}, err
+	}
+
+	dg, err := Unmarshal(data)
+
+	if err != nil {
+		return Datagram{}, err
 	}
 
 	return dg, nil
