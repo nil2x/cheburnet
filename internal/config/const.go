@@ -61,6 +61,7 @@ func defaultConfig() Config {
 		},
 		API: API{
 			TimeoutMS: 5 * 1000,
+			UserAgent: "",
 		},
 		QR: QR{
 			ZBarPath:   "zbarimg",

@@ -88,8 +88,9 @@ func (cfg Socks) ForwardInterval() time.Duration {
 }
 
 type API struct {
-	TimeoutMS   int  `json:"-"`
-	Unathorized bool `json:"unathorized"`
+	TimeoutMS   int    `json:"-"`
+	Unathorized bool   `json:"unathorized"`
+	UserAgent   string `json:"userAgent"`
 }
 
 func (cfg API) Timeout() time.Duration {

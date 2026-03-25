@@ -194,6 +194,10 @@ func (c *VKClient) do(req *http.Request, params vkDoParams) ([]byte, error) {
 		req = req.WithContext(ctx)
 	}
 
+	if c.cfg.UserAgent != "" {
+		req.Header.Set("User-Agent", c.cfg.UserAgent)
+	}
+
 	// descr is used for verbose error message.
 	method := strings.TrimPrefix(req.URL.Path, "/method/")
 	descr := fmt.Sprintf("(method=%v club=%v user=%v)", method, params.club.Name, params.user.Name)
