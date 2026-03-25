@@ -19,16 +19,20 @@ import (
 // Command-line flags are outside of the config and should be parsed
 // separately using ParseFlags.
 func Parse(file string) (Config, error) {
-	cfg, err := parseJSON(file)
-
-	if err != nil {
-		return Config{}, fmt.Errorf("json: %v", err)
-	}
-
 	env, err := parseEnv()
 
 	if err != nil {
 		return Config{}, fmt.Errorf("env: %v", err)
+	}
+
+	if env.ConfigPath != "" {
+		file = env.ConfigPath
+	}
+
+	cfg, err := parseJSON(file)
+
+	if err != nil {
+		return Config{}, fmt.Errorf("json: %v", err)
 	}
 
 	if env.LogOutput != "" {
@@ -96,8 +100,9 @@ func parseJSON(name string) (Config, error) {
 
 func parseEnv() (Env, error) {
 	env := Env{
-		LogOutput: os.Getenv("LOG_OUTPUT"),
-		SocksHost: os.Getenv("SOCKS_HOST"),
+		ConfigPath: os.Getenv("CONFIG"),
+		LogOutput:  os.Getenv("LOG_OUTPUT"),
+		SocksHost:  os.Getenv("SOCKS_HOST"),
 	}
 
 	if port := os.Getenv("SOCKS_PORT"); port != "" {
