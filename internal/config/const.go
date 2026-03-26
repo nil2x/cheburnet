@@ -70,9 +70,10 @@ func defaultConfig() Config {
 			ForwardIntervalMS: 500,
 		},
 		API: API{
-			TimeoutMS:   5 * 1000,
-			Unathorized: false,
-			UserAgent:   "",
+			TimeoutMS:      5 * 1000,
+			Unathorized:    false,
+			UserAgent:      "",
+			SkipValidation: false,
 		},
 		QR: QR{
 			ZBarPath:   "zbarimg",

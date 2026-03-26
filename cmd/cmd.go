@@ -94,19 +94,21 @@ func run(ctx context.Context, errs chan<- error) error {
 	vkClient := api.NewVKClient(cfg.API)
 	storageClient := api.NewStorageClient()
 
-	for _, club := range cfg.Clubs {
-		if err := api.ValidateClub(vkClient, club); err != nil {
-			return fmt.Errorf("validate club: %v: %v", club.Name, err)
+	if !cfg.API.SkipValidation {
+		for _, club := range cfg.Clubs {
+			if err := api.ValidateClub(vkClient, club); err != nil {
+				return fmt.Errorf("validate club: %v: %v", club.Name, err)
+			}
+
+			if err := api.ValidateLongPoll(vkClient, club); err != nil {
+				return fmt.Errorf("validate long poll: %v: %v", club.Name, err)
+			}
 		}
 
-		if err := api.ValidateLongPoll(vkClient, club); err != nil {
-			return fmt.Errorf("validate long poll: %v: %v", club.Name, err)
-		}
-	}
-
-	for _, user := range cfg.Users {
-		if err := api.ValidateUser(vkClient, user); err != nil {
-			return fmt.Errorf("validate user: %v: %v", user.Name, err)
+		for _, user := range cfg.Users {
+			if err := api.ValidateUser(vkClient, user); err != nil {
+				return fmt.Errorf("validate user: %v: %v", user.Name, err)
+			}
 		}
 	}
 
