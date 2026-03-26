@@ -1364,6 +1364,10 @@ func (c *VKClient) GroupsUseLongPollServer(ctx context.Context, server GroupsGet
 	data, err := c.do(req, vkDoParams{timeout: 30 * time.Second})
 
 	if err != nil {
+		if strings.Contains(err.Error(), "unsupported protocol scheme") {
+			err = fmt.Errorf("%v (server=%v)", err, server.Server)
+		}
+
 		return GroupsUseLongPollServerResponse{}, err
 	}
 
