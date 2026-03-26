@@ -1,12 +1,6 @@
 services:
   cheburnet:
-    image: cheburnet:latest
-    container_name: cheburnet
-    build:
-      context: .
-      args:
-        VERSION: ${VERSION}
-        COMMIT: ${COMMIT}
+    image: ghcr.io/nil2x/cheburnet:latest
     ports:
       - 1080:1080
     volumes:

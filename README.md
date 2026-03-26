@@ -237,12 +237,6 @@ tail -n 100 /var/log/cheburnet/output.log
 
 Переместите файл `assets/config.json` в одну папку с `docker-compose.yml`.
 
-Выполните:
-
-```bash
-docker compose build
-```
-
 #### 3. Сгенерируйте секрет
 
 Если секрет не сгенерирован ранее, то выполните:
