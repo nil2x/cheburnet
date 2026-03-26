@@ -23,6 +23,7 @@ func ListenLongPoll(ctx context.Context, cfg config.Config, vkC *api.VKClient, s
 	last := api.GroupsUseLongPollServerResponse{
 		TS: server.TS,
 	}
+	fails := 0
 
 	slog.Info("long poll: listening", "club", club.Name)
 
@@ -35,9 +36,18 @@ func ListenLongPoll(ctx context.Context, cfg config.Config, vkC *api.VKClient, s
 
 			if err != nil {
 				slog.Error("long poll: listen", "club", club.Name, "err", err)
+
 				sleep = 5 * time.Second
-				continue
+				fails++
+
+				if fails >= 3 {
+					last.Failed = 1
+				} else {
+					continue
+				}
 			}
+
+			fails = 0
 
 			if last.Failed != 0 {
 				slog.Debug("long poll: refresh", "club", club.Name)
