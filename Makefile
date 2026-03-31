@@ -1,5 +1,5 @@
 NAME=cheburnet
-VERSION=1.1
+VERSION=1.2
 BIN_DIR=bin
 DIST_DIR=dist
 COMMIT=$(shell git rev-parse --short HEAD)
