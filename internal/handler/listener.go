@@ -70,7 +70,7 @@ func ListenLongPoll(ctx context.Context, cfg config.Config, vkC *api.VKClient, s
 			for _, upd := range last.Updates {
 				evt := event{
 					name:           upd.Type,
-					club:           club,
+					source:         club.Name,
 					longPollUpdate: upd,
 				}
 
@@ -131,7 +131,7 @@ func ListenStorage(ctx context.Context, cfg config.Config, vkC *api.VKClient, st
 
 				evt := event{
 					name:         "storage",
-					club:         club,
+					source:       club.Name,
 					storageValue: resp.Value,
 				}
 

@@ -21,13 +21,13 @@ import (
 
 type event struct {
 	name           string
-	club           config.Club
+	source         string
 	longPollUpdate api.Update
 	storageValue   string
 }
 
 func (e event) String() string {
-	return fmt.Sprintf("name=%v club=%v", e.name, e.club.Name)
+	return fmt.Sprintf("name=%v source=%v", e.name, e.source)
 }
 
 // handleEvent accepts event that contain datagrams data, extracts them and
