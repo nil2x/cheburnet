@@ -81,5 +81,7 @@ func defaultConfig() Config {
 			ImageLevel: 1,
 			SaveDir:    "",
 		},
+		Clubs: []Club{},
+		Users: []User{},
 	}
 }
