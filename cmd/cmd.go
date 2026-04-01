@@ -72,7 +72,7 @@ func run(ctx context.Context, errs chan<- error) error {
 	}
 
 	if err := transform.Init(&cfg); err != nil {
-		return fmt.Errorf("init encoding: %v", err)
+		return fmt.Errorf("init transform: %v", err)
 	}
 
 	if err := config.Validate(cfg); err != nil {
