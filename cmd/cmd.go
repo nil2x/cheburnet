@@ -10,6 +10,7 @@ import (
 	"github.com/nil2x/cheburnet/internal/api"
 	"github.com/nil2x/cheburnet/internal/config"
 	"github.com/nil2x/cheburnet/internal/handler"
+	"github.com/nil2x/cheburnet/internal/imap"
 	"github.com/nil2x/cheburnet/internal/session"
 	"github.com/nil2x/cheburnet/internal/socks"
 	"github.com/nil2x/cheburnet/internal/transform"
@@ -91,6 +92,10 @@ func run(ctx context.Context, errs chan<- error) error {
 		return fmt.Errorf("validate qr: %v", err)
 	}
 
+	if err := imap.Init(cfg.IMAP); err != nil {
+		return fmt.Errorf("init imap: %v", err)
+	}
+
 	vkClient := api.NewVKClient(cfg.API)
 	storageClient := api.NewStorageClient()
 
@@ -108,6 +113,12 @@ func run(ctx context.Context, errs chan<- error) error {
 		for _, user := range cfg.Users {
 			if err := api.ValidateUser(vkClient, user); err != nil {
 				return fmt.Errorf("validate user: %v: %v", user.Name, err)
+			}
+		}
+
+		for _, client := range imap.GetClients() {
+			if err := imap.Validate(client); err != nil {
+				return fmt.Errorf("validate imap: %v: %v", client.Name, err)
 			}
 		}
 	}
@@ -149,6 +160,17 @@ func run(ctx context.Context, errs chan<- error) error {
 		}(club)
 	}
 
+	for _, client := range imap.GetClients() {
+		wg.Add(1)
+		go func(client *imap.Client) {
+			defer wg.Done()
+
+			if err := handler.ListenIMAP(ctx, cfg, vkClient, storageClient, client); err != nil {
+				errs <- fmt.Errorf("listen imap: %v: %v", client.Name, err)
+			}
+		}(client)
+	}
+
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
@@ -167,7 +189,20 @@ func run(ctx context.Context, errs chan<- error) error {
 		}
 	}()
 
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+
+		if err := imap.Clear(ctx); err != nil {
+			errs <- fmt.Errorf("clear imap: %v", err)
+		}
+	}()
+
 	wg.Wait()
+
+	if err := imap.Close(); err != nil {
+		errs <- fmt.Errorf("close imap: %v", err)
+	}
 
 	return nil
 }
