@@ -12,6 +12,7 @@ import (
 	"github.com/nil2x/cheburnet/internal/api"
 	"github.com/nil2x/cheburnet/internal/config"
 	"github.com/nil2x/cheburnet/internal/datagram"
+	"github.com/nil2x/cheburnet/internal/imap"
 )
 
 var muxer executorI
@@ -144,6 +145,7 @@ func (m *multiplexer) merge(plans []sendingPlan) (sendingPlan, error) {
 					strings:        []string{},
 					clubs:          []config.Club{},
 					users:          []config.User{},
+					imap:           []*imap.Client{},
 					docLinkMethods: []sendingMethod{},
 				}
 				byMethodMeta[method] = []metadata{}
@@ -154,6 +156,7 @@ func (m *multiplexer) merge(plans []sendingPlan) (sendingPlan, error) {
 			grouped.strings = append(grouped.strings, plan.strings[i])
 			grouped.clubs = append(grouped.clubs, plan.clubs[i])
 			grouped.users = append(grouped.users, plan.users[i])
+			grouped.imap = append(grouped.imap, plan.imap[i])
 			byMethod[method] = grouped
 
 			meta := metadata{
@@ -264,6 +267,7 @@ func (m *multiplexer) merge(plans []sendingPlan) (sendingPlan, error) {
 		strings:        []string{},
 		clubs:          []config.Club{},
 		users:          []config.User{},
+		imap:           []*imap.Client{},
 		docLinkMethods: []sendingMethod{},
 	}
 
@@ -287,6 +291,7 @@ func (m *multiplexer) merge(plans []sendingPlan) (sendingPlan, error) {
 			merged.strings = append(merged.strings, str)
 			merged.clubs = append(merged.clubs, randElem(byMethod[method].clubs))
 			merged.users = append(merged.users, randElem(byMethod[method].users))
+			merged.imap = append(merged.imap, randElem(byMethod[method].imap))
 
 			if method == methodDoc {
 				merged.docLinkMethods = append(merged.docLinkMethods, randElem(byMethod[methodDoc].docLinkMethods))

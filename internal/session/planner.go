@@ -7,6 +7,7 @@ import (
 
 	"github.com/nil2x/cheburnet/internal/config"
 	"github.com/nil2x/cheburnet/internal/datagram"
+	"github.com/nil2x/cheburnet/internal/imap"
 	"github.com/nil2x/cheburnet/internal/transform"
 )
 
@@ -27,6 +28,7 @@ const (
 	methodMarketComment
 	methodTopic
 	methodTopicComment
+	methodIMAP
 )
 
 var (
@@ -52,6 +54,7 @@ func initPlanner(cfg config.Config) {
 		methodMarketComment: !cfg.API.Unathorized,
 		methodTopic:         false && !cfg.API.Unathorized, // disabled, captcha control
 		methodTopicComment:  false && !cfg.API.Unathorized, // disabled, captcha control
+		methodIMAP:          imap.HaveClients(),
 	}
 	methodsMaxLenEncoded = map[sendingMethod]int{
 		methodMessage:       4096,
@@ -68,6 +71,7 @@ func initPlanner(cfg config.Config) {
 		methodMarketComment: 2048,
 		methodTopic:         4096,
 		methodTopicComment:  4096,
+		methodIMAP:          512 * 1024,
 	}
 
 	for method, enabled := range cfg.Session.MethodsEnabled {
@@ -93,6 +97,7 @@ func initPlanner(cfg config.Config) {
 		methodMarketComment: transform.Base85CharsetRU,
 		methodTopic:         transform.Base85CharsetRU,
 		methodTopicComment:  transform.Base85CharsetRU,
+		methodIMAP:          transform.Base85CharsetASCII,
 	}
 	methodsMaxLenPayload = map[sendingMethod]int{
 		methodMessage:       datagram.CalcMaxLenPayload(methodsMaxLenEncoded[methodMessage]),
@@ -109,6 +114,7 @@ func initPlanner(cfg config.Config) {
 		methodMarketComment: datagram.CalcMaxLenPayload(methodsMaxLenEncoded[methodMarketComment]),
 		methodTopic:         datagram.CalcMaxLenPayload(methodsMaxLenEncoded[methodTopic]),
 		methodTopicComment:  datagram.CalcMaxLenPayload(methodsMaxLenEncoded[methodTopicComment]),
+		methodIMAP:          datagram.CalcMaxLenPayload(methodsMaxLenEncoded[methodIMAP]),
 	}
 }
 
@@ -119,6 +125,7 @@ type sendingPlan struct {
 	strings        []string
 	clubs          []config.Club
 	users          []config.User
+	imap           []*imap.Client
 	docLinkMethods []sendingMethod
 }
 
@@ -145,6 +152,10 @@ func (p sendingPlan) isInvalid() error {
 
 	if len(p.methods) != len(p.users) {
 		return errors.New("methods and users mismatch")
+	}
+
+	if len(p.methods) != len(p.imap) {
+		return errors.New("methods and imap mismatch")
 	}
 
 	methodDocCount := 0
@@ -204,6 +215,7 @@ func (p *planner) create(dg datagram.Datagram) (sendingPlan, error) {
 
 	plan.clubs = p.createClubs(plan.methods)
 	plan.users = p.createUsers(plan.methods)
+	plan.imap = p.createIMAP(plan.methods)
 
 	docLinkMethods, err := p.createDocLinkMethods(plan.methods)
 
@@ -227,6 +239,7 @@ func (p *planner) createPlan(dg datagram.Datagram, num int) (sendingPlan, error)
 	}
 	bigMethods := []sendingMethod{
 		methodDoc,
+		methodIMAP,
 	}
 
 	// Try to detect if TLS handshake is in progress.
@@ -384,6 +397,21 @@ func (p *planner) createUsers(methods []sendingMethod) []config.User {
 	}
 
 	return users
+}
+
+func (p *planner) createIMAP(methods []sendingMethod) []*imap.Client {
+	clients := make([]*imap.Client, len(methods))
+
+	for i := range methods {
+		cfg := randElem(p.cfg.IMAP)
+		c, exists := imap.GetClient(cfg.Name)
+
+		if exists {
+			clients[i] = c
+		}
+	}
+
+	return clients
 }
 
 func (p *planner) createDocLinkMethods(methods []sendingMethod) ([]sendingMethod, error) {

@@ -8,6 +8,7 @@ import (
 	"github.com/nil2x/cheburnet/internal/api"
 	"github.com/nil2x/cheburnet/internal/config"
 	"github.com/nil2x/cheburnet/internal/datagram"
+	"github.com/nil2x/cheburnet/internal/imap"
 	"github.com/nil2x/cheburnet/internal/transform"
 )
 
@@ -72,6 +73,7 @@ func (e *executor) execute(plan sendingPlan) error {
 		str := plan.strings[i]
 		club := plan.clubs[i]
 		user := plan.users[i]
+		imapC := plan.imap[i]
 
 		if method == methodDoc {
 			p := sendingPlan{
@@ -79,6 +81,7 @@ func (e *executor) execute(plan sendingPlan) error {
 				strings:        []string{str},
 				clubs:          []config.Club{club},
 				users:          []config.User{user},
+				imap:           []*imap.Client{imapC},
 				docLinkMethods: []sendingMethod{plan.docLinkMethods[len(docs)]},
 			}
 			docs = append(docs, p)
@@ -97,6 +100,10 @@ func (e *executor) execute(plan sendingPlan) error {
 		}
 
 		f := func() error {
+			if method == methodIMAP {
+				return e.executeMethodIMAP(encoded, imapC)
+			}
+
 			mf, err := e.methodToFunc(method)
 
 			if err != nil {
@@ -115,8 +122,13 @@ func (e *executor) execute(plan sendingPlan) error {
 			str := p.strings[0]
 			club := p.clubs[0]
 			user := p.users[0]
+			imapC := p.imap[0]
 			method := p.docLinkMethods[0]
 			f := func() error {
+				if method == methodIMAP {
+					return e.executeMethodIMAP(encoded, imapC)
+				}
+
 				mf, err := e.methodToFunc(method)
 
 				if err != nil {
@@ -462,4 +474,18 @@ func (e *executor) executeMethodTopicComment(text string, _ config.Club, user co
 	_, err := e.vkC.BoardCreateComment(club, user, p)
 
 	return err
+}
+
+func (e *executor) executeMethodIMAP(text string, imapC *imap.Client) error {
+	uid, err := imapC.Append(text)
+
+	if err != nil {
+		return fmt.Errorf("append: %v", err)
+	}
+
+	if err := imapC.MarkToRemove(uid); err != nil {
+		return fmt.Errorf("mark: %v", err)
+	}
+
+	return nil
 }
