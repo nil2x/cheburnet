@@ -18,6 +18,7 @@ type Config struct {
 	QR      QR      `json:"qr"`
 	Clubs   []Club  `json:"clubs"`
 	Users   []User  `json:"users"`
+	IMAP    []IMAP  `json:"imap"`
 }
 
 type Log struct {
@@ -124,6 +125,19 @@ type User struct {
 	Name        string `json:"name"`
 	ID          string `json:"id"`
 	AccessToken string `json:"accessToken"`
+}
+
+type IMAP struct {
+	Address
+	Name     string `json:"name"`
+	Username string `json:"username"`
+	Password string `json:"password"`
+	Mailbox  string `json:"mailbox"`
+	Insecure bool   `json:"insecure"`
+	Debug    bool   `json:"debug"`
+	From     string `json:"from"`
+	To       string `json:"to"`
+	Subject  string `json:"subject"`
 }
 
 type Address struct {

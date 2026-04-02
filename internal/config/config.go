@@ -173,6 +173,32 @@ func Validate(cfg Config) error {
 		}
 	}
 
+	for _, imap := range cfg.IMAP {
+		if imap.Host == "" {
+			return errors.New("imap.host is missing")
+		}
+
+		if imap.Port == 0 {
+			return errors.New("imap.port is missing")
+		}
+
+		if imap.Name == "" {
+			return errors.New("imap.name is missing")
+		}
+
+		if imap.Username == "" {
+			return errors.New("imap.username is missing")
+		}
+
+		if imap.Password == "" {
+			return errors.New("imap.password is missing")
+		}
+
+		if imap.Mailbox == "" {
+			return errors.New("imap.mailbox is missing")
+		}
+	}
+
 	if len(cfg.Session.SecretKey) == 0 {
 		return errors.New("session.secret is missing")
 	}

@@ -83,5 +83,6 @@ func defaultConfig() Config {
 		},
 		Clubs: []Club{},
 		Users: []User{},
+		IMAP:  []IMAP{},
 	}
 }
