@@ -24,6 +24,7 @@ type event struct {
 	source         string
 	longPollUpdate api.Update
 	storageValue   string
+	imapValue      string
 }
 
 func (e event) String() string {
@@ -78,6 +79,8 @@ func handleEvent(cfg config.Config, vkC *api.VKClient, storageC *api.StorageClie
 		}
 	} else if len(evt.storageValue) > 0 {
 		muxed = evt.storageValue
+	} else if len(evt.imapValue) > 0 {
+		muxed = evt.imapValue
 	} else {
 		err = errors.New("empty event")
 	}

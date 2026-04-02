@@ -8,6 +8,7 @@ import (
 
 	"github.com/nil2x/cheburnet/internal/api"
 	"github.com/nil2x/cheburnet/internal/config"
+	"github.com/nil2x/cheburnet/internal/imap"
 	"github.com/nil2x/cheburnet/internal/session"
 )
 
@@ -143,6 +144,89 @@ func ListenStorage(ctx context.Context, cfg config.Config, vkC *api.VKClient, st
 			}
 
 			sleep = 500 * time.Millisecond
+		}
+	}
+}
+
+// ListenIMAP listens IMAP for new datagrams and handles them.
+func ListenIMAP(ctx context.Context, cfg config.Config, vkC *api.VKClient, storageC *api.StorageClient, imapC *imap.Client) error {
+	last, err := imapC.Status()
+
+	if err != nil {
+		return fmt.Errorf("status: %v", err)
+	}
+
+	var sleep time.Duration
+
+	slog.Info("imap: listening", "name", imapC.Name)
+
+	for {
+		select {
+		case <-ctx.Done():
+			return nil
+		case <-time.After(sleep):
+			if !session.IsOpened() {
+				sleep = 1000 * time.Millisecond
+				continue
+			}
+
+			current, err := imapC.Status()
+
+			if err != nil {
+				slog.Error("imap: listen", "name", imapC.Name, "err", err)
+				sleep = 5 * time.Second
+				continue
+			}
+
+			if current.UIDNext == last.UIDNext {
+				// Some servers (e.g., Rambler) may return cached status if
+				// the client did not perform any actions. Let's perform no-op
+				// to trigger cache revalidation.
+				if err := imapC.NoOp(); err != nil {
+					slog.Error("imap: listen", "name", imapC.Name, "err", err)
+				}
+
+				sleep = 1000 * time.Millisecond
+				continue
+			}
+
+			messages, err := imapC.Fetch(last.UIDNext, current.UIDNext)
+
+			if err == nil {
+				// Sometimes returned body may be zero length.
+				// But IMAP logs show that fetched body is non-zero.
+				// Most probably there is a bug somewhere in the Go IMAP library.
+				// Let's fetch again, usually this helps.
+				for _, m := range messages {
+					if len(m.Body) == 0 {
+						messages, err = imapC.Fetch(last.UIDNext, current.UIDNext)
+						break
+					}
+				}
+			}
+
+			if err != nil {
+				slog.Error("imap: listen", "name", imapC.Name, "err", err)
+				sleep = 5 * time.Second
+				continue
+			}
+
+			for _, msg := range messages {
+				evt := event{
+					name:      "imap",
+					source:    imapC.Name,
+					imapValue: msg.Body,
+				}
+
+				go func(evt event) {
+					if err := handleEvent(cfg, vkC, storageC, evt); err != nil {
+						slog.Error("handler: handle", "event", evt, "err", err)
+					}
+				}(evt)
+			}
+
+			last = current
+			sleep = 1000 * time.Millisecond
 		}
 	}
 }
