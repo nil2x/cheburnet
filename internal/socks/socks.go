@@ -68,6 +68,10 @@ func Listen(ctx context.Context, cfg config.Config, vkC *api.VKClient, storageC 
 		conn, err := ln.Accept()
 
 		if err != nil {
+			if errors.Is(err, net.ErrClosed) {
+				break
+			}
+
 			slog.Error("socks: accept", "err", err)
 			continue
 		}
@@ -93,6 +97,8 @@ func Listen(ctx context.Context, cfg config.Config, vkC *api.VKClient, storageC 
 
 		go accept(cfg, ses, conn, stageHandshake)
 	}
+
+	return nil
 }
 
 // Forward accepts established connection without performing SOCKS handshake.
