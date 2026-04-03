@@ -125,11 +125,16 @@ func (e *executor) execute(plan sendingPlan) error {
 			imapC := p.imap[0]
 			method := p.docLinkMethods[0]
 			f := func() error {
-				if method == methodIMAP {
-					return e.executeMethodIMAP(encoded, imapC)
-				}
+				var mf executorStringFunc
+				var err error
 
-				mf, err := e.methodToFunc(method)
+				if method == methodIMAP {
+					mf = func(s string, c config.Club, u config.User) error {
+						return e.executeMethodIMAP(s, imapC)
+					}
+				} else {
+					mf, err = e.methodToFunc(method)
+				}
 
 				if err != nil {
 					return err
