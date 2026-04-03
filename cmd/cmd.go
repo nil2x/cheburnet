@@ -4,8 +4,10 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"os/signal"
 	"runtime"
 	"sync"
+	"syscall"
 
 	"github.com/nil2x/cheburnet/internal/api"
 	"github.com/nil2x/cheburnet/internal/config"
@@ -19,6 +21,15 @@ import (
 // Run starts the program, waits its completion and exits with appropriate code.
 func Run() {
 	ctx, cancel := context.WithCancel(context.Background())
+
+	sigCh := make(chan os.Signal, 1)
+	signal.Notify(sigCh, syscall.SIGTERM, syscall.SIGINT)
+
+	go func() {
+		<-sigCh
+		cancel()
+	}()
+
 	errs := make(chan error, 100)
 	code := 0
 
