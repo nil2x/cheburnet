@@ -30,9 +30,10 @@ func BuildInfo() string {
 func defaultConfig() Config {
 	return Config{
 		Log: Log{
-			Level:   0,
-			Output:  "",
-			Payload: false,
+			Level:    0,
+			Output:   "",
+			Truncate: false,
+			Payload:  false,
 		},
 		DNS: DNS{
 			Address: Address{

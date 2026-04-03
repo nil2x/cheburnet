@@ -215,7 +215,13 @@ func SetupLog(cfg Log) error {
 		return nil
 	}
 
-	f, err := os.OpenFile(cfg.Output, os.O_WRONLY|os.O_APPEND|os.O_CREATE, 0644)
+	flag := os.O_WRONLY | os.O_APPEND | os.O_CREATE
+
+	if cfg.Truncate {
+		flag |= os.O_TRUNC
+	}
+
+	f, err := os.OpenFile(cfg.Output, flag, 0644)
 
 	if err != nil {
 		return err

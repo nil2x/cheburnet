@@ -22,9 +22,10 @@ type Config struct {
 }
 
 type Log struct {
-	Level   int    `json:"level"`
-	Output  string `json:"output"`
-	Payload bool   `json:"payload"`
+	Level    int    `json:"level"`
+	Output   string `json:"output"`
+	Truncate bool   `json:"truncate"`
+	Payload  bool   `json:"payload"`
 }
 
 type DNS struct {

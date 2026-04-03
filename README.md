@@ -372,6 +372,9 @@ cheburnet -config /path/to/config.json
         // Если пусто, то выводить логи в терминал.
         "output": "",
 
+        // Очистить файл после его открытия.
+        "truncate": false,
+
         // Логировать тела запросов и ответов.
         "payload": false
     },
