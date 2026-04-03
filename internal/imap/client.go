@@ -294,7 +294,8 @@ func (c *Client) Fetch(start, stop UID) ([]Message, error) {
 					return nil, fmt.Errorf("message %v: read body: %v", msg.UID, err)
 				}
 
-				msg.Body = string(b)
+				s := string(b)
+				msg.Body = strings.TrimSuffix(s, "\r\n")
 			}
 		}
 
