@@ -302,8 +302,11 @@ func ListenYaDisk(ctx context.Context, cfg config.Config, vkC *api.VKClient, sto
 					b, err := yadiskC.Download(item.Name)
 
 					if err == nil {
+						s := string(b)
+						yadiskC.UpdateNamespace(s)
+
 						dataMu.Lock()
-						data = append(data, string(b))
+						data = append(data, s)
 						dataMu.Unlock()
 					} else {
 						slog.Error("yadisk: listen", "name", yadiskC.Name, "err", err)
