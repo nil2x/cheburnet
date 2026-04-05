@@ -252,7 +252,7 @@ func (p *planner) createPlan(dg datagram.Datagram, num int) (sendingPlan, error)
 	bigMethods := []sendingMethod{
 		methodDoc,
 		methodIMAP, methodIMAP,
-		methodYaDisk,
+		methodYaDisk, methodYaDisk,
 	}
 
 	// Try to detect if TLS handshake is in progress.
@@ -265,7 +265,7 @@ func (p *planner) createPlan(dg datagram.Datagram, num int) (sendingPlan, error)
 			smallMethods = append(smallMethods, methodCaption)
 		}
 
-		smallMethods = append(smallMethods, methodIMAP)
+		smallMethods = append(smallMethods, methodIMAP, methodYaDisk)
 	}
 
 	if p.executor.havePosts() {
@@ -457,6 +457,7 @@ func (p *planner) createDocLinkMethods(methods []sendingMethod) ([]sendingMethod
 		methodMarketComment,
 		methodTopic,
 		methodIMAP,
+		methodYaDisk,
 	}
 
 	if p.executor.havePosts() {
