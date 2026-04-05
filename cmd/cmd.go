@@ -16,6 +16,7 @@ import (
 	"github.com/nil2x/cheburnet/internal/session"
 	"github.com/nil2x/cheburnet/internal/socks"
 	"github.com/nil2x/cheburnet/internal/transform"
+	"github.com/nil2x/cheburnet/internal/yadisk"
 )
 
 // Run starts the program, waits its completion and exits with appropriate code.
@@ -107,6 +108,10 @@ func run(ctx context.Context, errs chan<- error) error {
 		return fmt.Errorf("init imap: %v", err)
 	}
 
+	if err := yadisk.Init(cfg.API, cfg.YaDisk); err != nil {
+		return fmt.Errorf("init yadisk: %v", err)
+	}
+
 	vkClient := api.NewVKClient(cfg.API)
 	storageClient := api.NewStorageClient()
 
@@ -130,6 +135,12 @@ func run(ctx context.Context, errs chan<- error) error {
 		for _, client := range imap.GetClients() {
 			if err := imap.Validate(client); err != nil {
 				return fmt.Errorf("validate imap: %v: %v", client.Name, err)
+			}
+		}
+
+		for _, client := range yadisk.GetClients() {
+			if err := yadisk.Validate(client); err != nil {
+				return fmt.Errorf("validate yadisk: %v: %v", client.Name, err)
 			}
 		}
 	}
@@ -178,6 +189,17 @@ func run(ctx context.Context, errs chan<- error) error {
 
 			if err := handler.ListenIMAP(ctx, cfg, vkClient, storageClient, client); err != nil {
 				errs <- fmt.Errorf("listen imap: %v: %v", client.Name, err)
+			}
+		}(client)
+	}
+
+	for _, client := range yadisk.GetClients() {
+		wg.Add(1)
+		go func(client *yadisk.Client) {
+			defer wg.Done()
+
+			if err := handler.ListenYaDisk(ctx, cfg, vkClient, storageClient, client); err != nil {
+				errs <- fmt.Errorf("listen yadisk: %v: %v", client.Name, err)
 			}
 		}(client)
 	}

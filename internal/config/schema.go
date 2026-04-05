@@ -9,16 +9,17 @@ import (
 // Config holds configuration of the program.
 // See README for description of some of the fields.
 type Config struct {
-	Log     Log     `json:"log"`
-	DNS     DNS     `json:"dns"`
-	Session Session `json:"session"`
-	Handler Handler `json:"handler"`
-	Socks   Socks   `json:"socks"`
-	API     API     `json:"api"`
-	QR      QR      `json:"qr"`
-	Clubs   []Club  `json:"clubs"`
-	Users   []User  `json:"users"`
-	IMAP    []IMAP  `json:"imap"`
+	Log     Log      `json:"log"`
+	DNS     DNS      `json:"dns"`
+	Session Session  `json:"session"`
+	Handler Handler  `json:"handler"`
+	Socks   Socks    `json:"socks"`
+	API     API      `json:"api"`
+	QR      QR       `json:"qr"`
+	Clubs   []Club   `json:"clubs"`
+	Users   []User   `json:"users"`
+	IMAP    []IMAP   `json:"imap"`
+	YaDisk  []YaDisk `json:"yadisk"`
 }
 
 type Log struct {
@@ -139,6 +140,13 @@ type IMAP struct {
 	From     string `json:"from"`
 	To       string `json:"to"`
 	Subject  string `json:"subject"`
+}
+
+type YaDisk struct {
+	Name   string `json:"name"`
+	Token  string `json:"token"`
+	Origin string `json:"origin"`
+	Root   string `json:"root"`
 }
 
 type Address struct {

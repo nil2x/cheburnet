@@ -9,6 +9,7 @@ import (
 	"github.com/nil2x/cheburnet/internal/datagram"
 	"github.com/nil2x/cheburnet/internal/imap"
 	"github.com/nil2x/cheburnet/internal/transform"
+	"github.com/nil2x/cheburnet/internal/yadisk"
 )
 
 type sendingMethod int
@@ -29,6 +30,7 @@ const (
 	methodTopic
 	methodTopicComment
 	methodIMAP
+	methodYaDisk
 )
 
 var (
@@ -55,6 +57,7 @@ func initPlanner(cfg config.Config) {
 		methodTopic:         false && !cfg.API.Unathorized, // disabled, captcha control
 		methodTopicComment:  false && !cfg.API.Unathorized, // disabled, captcha control
 		methodIMAP:          imap.HaveClients(),
+		methodYaDisk:        yadisk.HaveClients(),
 	}
 	methodsMaxLenEncoded = map[sendingMethod]int{
 		methodMessage:       4096,
@@ -72,6 +75,7 @@ func initPlanner(cfg config.Config) {
 		methodTopic:         4096,
 		methodTopicComment:  4096,
 		methodIMAP:          512 * 1024,
+		methodYaDisk:        1 * 1024 * 1024,
 	}
 
 	for method, enabled := range cfg.Session.MethodsEnabled {
@@ -98,6 +102,7 @@ func initPlanner(cfg config.Config) {
 		methodTopic:         transform.Base85CharsetRU,
 		methodTopicComment:  transform.Base85CharsetRU,
 		methodIMAP:          transform.Base85CharsetASCII,
+		methodYaDisk:        transform.Base85CharsetASCII,
 	}
 	methodsMaxLenPayload = map[sendingMethod]int{
 		methodMessage:       datagram.CalcMaxLenPayload(methodsMaxLenEncoded[methodMessage]),
@@ -115,6 +120,7 @@ func initPlanner(cfg config.Config) {
 		methodTopic:         datagram.CalcMaxLenPayload(methodsMaxLenEncoded[methodTopic]),
 		methodTopicComment:  datagram.CalcMaxLenPayload(methodsMaxLenEncoded[methodTopicComment]),
 		methodIMAP:          datagram.CalcMaxLenPayload(methodsMaxLenEncoded[methodIMAP]),
+		methodYaDisk:        datagram.CalcMaxLenPayload(methodsMaxLenEncoded[methodYaDisk]),
 	}
 }
 
@@ -126,6 +132,7 @@ type sendingPlan struct {
 	clubs          []config.Club
 	users          []config.User
 	imap           []*imap.Client
+	yadisk         []*yadisk.Client
 	docLinkMethods []sendingMethod
 }
 
@@ -156,6 +163,10 @@ func (p sendingPlan) isInvalid() error {
 
 	if len(p.methods) != len(p.imap) {
 		return errors.New("methods and imap mismatch")
+	}
+
+	if len(p.methods) != len(p.yadisk) {
+		return errors.New("methods and yadisk mismatch")
 	}
 
 	methodDocCount := 0
@@ -216,6 +227,7 @@ func (p *planner) create(dg datagram.Datagram) (sendingPlan, error) {
 	plan.clubs = p.createClubs(plan.methods)
 	plan.users = p.createUsers(plan.methods)
 	plan.imap = p.createIMAP(plan.methods)
+	plan.yadisk = p.createYaDisk(plan.methods)
 
 	docLinkMethods, err := p.createDocLinkMethods(plan.methods)
 
@@ -240,6 +252,7 @@ func (p *planner) createPlan(dg datagram.Datagram, num int) (sendingPlan, error)
 	bigMethods := []sendingMethod{
 		methodDoc,
 		methodIMAP, methodIMAP,
+		methodYaDisk,
 	}
 
 	// Try to detect if TLS handshake is in progress.
@@ -407,6 +420,21 @@ func (p *planner) createIMAP(methods []sendingMethod) []*imap.Client {
 	for i := range methods {
 		cfg := randElem(p.cfg.IMAP)
 		c, exists := imap.GetClient(cfg.Name)
+
+		if exists {
+			clients[i] = c
+		}
+	}
+
+	return clients
+}
+
+func (p *planner) createYaDisk(methods []sendingMethod) []*yadisk.Client {
+	clients := make([]*yadisk.Client, len(methods))
+
+	for i := range methods {
+		cfg := randElem(p.cfg.YaDisk)
+		c, exists := yadisk.GetClient(cfg.Name)
 
 		if exists {
 			clients[i] = c

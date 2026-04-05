@@ -199,6 +199,16 @@ func Validate(cfg Config) error {
 		}
 	}
 
+	for _, yadisk := range cfg.YaDisk {
+		if yadisk.Name == "" {
+			return errors.New("yadisk.name is missing")
+		}
+
+		if yadisk.Token == "" {
+			return errors.New("yadisk.token is missing")
+		}
+	}
+
 	if len(cfg.Session.SecretKey) == 0 {
 		return errors.New("session.secret is missing")
 	}

@@ -10,6 +10,7 @@ import (
 	"github.com/nil2x/cheburnet/internal/datagram"
 	"github.com/nil2x/cheburnet/internal/imap"
 	"github.com/nil2x/cheburnet/internal/transform"
+	"github.com/nil2x/cheburnet/internal/yadisk"
 )
 
 var (
@@ -74,6 +75,7 @@ func (e *executor) execute(plan sendingPlan) error {
 		club := plan.clubs[i]
 		user := plan.users[i]
 		imapC := plan.imap[i]
+		yadiskC := plan.yadisk[i]
 
 		if method == methodDoc {
 			p := sendingPlan{
@@ -82,6 +84,7 @@ func (e *executor) execute(plan sendingPlan) error {
 				clubs:          []config.Club{club},
 				users:          []config.User{user},
 				imap:           []*imap.Client{imapC},
+				yadisk:         []*yadisk.Client{yadiskC},
 				docLinkMethods: []sendingMethod{plan.docLinkMethods[len(docs)]},
 			}
 			docs = append(docs, p)
@@ -104,6 +107,10 @@ func (e *executor) execute(plan sendingPlan) error {
 				return e.executeMethodIMAP(encoded, imapC)
 			}
 
+			if method == methodYaDisk {
+				return e.executeMethodYaDisk(encoded, yadiskC)
+			}
+
 			mf, err := e.methodToFunc(method)
 
 			if err != nil {
@@ -123,6 +130,7 @@ func (e *executor) execute(plan sendingPlan) error {
 			club := p.clubs[0]
 			user := p.users[0]
 			imapC := p.imap[0]
+			yadiskC := p.yadisk[0]
 			method := p.docLinkMethods[0]
 			f := func() error {
 				var mf executorStringFunc
@@ -131,6 +139,10 @@ func (e *executor) execute(plan sendingPlan) error {
 				if method == methodIMAP {
 					mf = func(s string, c config.Club, u config.User) error {
 						return e.executeMethodIMAP(s, imapC)
+					}
+				} else if method == methodYaDisk {
+					mf = func(s string, c config.Club, u config.User) error {
+						return e.executeMethodYaDisk(s, yadiskC)
 					}
 				} else {
 					mf, err = e.methodToFunc(method)
@@ -493,4 +505,10 @@ func (e *executor) executeMethodIMAP(text string, imapC *imap.Client) error {
 	}
 
 	return nil
+}
+
+func (e *executor) executeMethodYaDisk(text string, yadiskC *yadisk.Client) error {
+	_, err := yadiskC.Upload([]byte(text), "txt")
+
+	return err
 }
