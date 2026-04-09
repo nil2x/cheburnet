@@ -13,6 +13,7 @@ import (
 	"github.com/nil2x/cheburnet/internal/config"
 	"github.com/nil2x/cheburnet/internal/handler"
 	"github.com/nil2x/cheburnet/internal/imap"
+	"github.com/nil2x/cheburnet/internal/ok"
 	"github.com/nil2x/cheburnet/internal/session"
 	"github.com/nil2x/cheburnet/internal/socks"
 	"github.com/nil2x/cheburnet/internal/transform"
@@ -112,6 +113,10 @@ func run(ctx context.Context, errs chan<- error) error {
 		return fmt.Errorf("init yadisk: %v", err)
 	}
 
+	if err := ok.Init(cfg.API, cfg.OK); err != nil {
+		return fmt.Errorf("init ok: %v", err)
+	}
+
 	vkClient := api.NewVKClient(cfg.API)
 	storageClient := api.NewStorageClient()
 
@@ -141,6 +146,12 @@ func run(ctx context.Context, errs chan<- error) error {
 		for _, client := range yadisk.GetClients() {
 			if err := yadisk.Validate(client); err != nil {
 				return fmt.Errorf("validate yadisk: %v: %v", client.Name, err)
+			}
+		}
+
+		for _, client := range ok.GetClients() {
+			if err := ok.Validate(client); err != nil {
+				return fmt.Errorf("validate ok: %v: %v", client.Name, err)
 			}
 		}
 	}
@@ -200,6 +211,17 @@ func run(ctx context.Context, errs chan<- error) error {
 
 			if err := handler.ListenYaDisk(ctx, cfg, vkClient, storageClient, client); err != nil {
 				errs <- fmt.Errorf("listen yadisk: %v: %v", client.Name, err)
+			}
+		}(client)
+	}
+
+	for _, client := range ok.GetClients() {
+		wg.Add(1)
+		go func(client *ok.Client) {
+			defer wg.Done()
+
+			if err := handler.ListenOkStorage(ctx, cfg, vkClient, storageClient, client); err != nil {
+				errs <- fmt.Errorf("listen ok storage: %v: %v", client.Name, err)
 			}
 		}(client)
 	}

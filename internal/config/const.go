@@ -86,5 +86,6 @@ func defaultConfig() Config {
 		Users:  []User{},
 		IMAP:   []IMAP{},
 		YaDisk: []YaDisk{},
+		OK:     []OK{},
 	}
 }

@@ -9,6 +9,7 @@ import (
 	"github.com/nil2x/cheburnet/internal/config"
 	"github.com/nil2x/cheburnet/internal/datagram"
 	"github.com/nil2x/cheburnet/internal/imap"
+	"github.com/nil2x/cheburnet/internal/ok"
 	"github.com/nil2x/cheburnet/internal/transform"
 	"github.com/nil2x/cheburnet/internal/yadisk"
 )
@@ -76,6 +77,7 @@ func (e *executor) execute(plan sendingPlan) error {
 		user := plan.users[i]
 		imapC := plan.imap[i]
 		yadiskC := plan.yadisk[i]
+		okC := plan.ok[i]
 
 		if method == methodDoc {
 			p := sendingPlan{
@@ -85,6 +87,7 @@ func (e *executor) execute(plan sendingPlan) error {
 				users:          []config.User{user},
 				imap:           []*imap.Client{imapC},
 				yadisk:         []*yadisk.Client{yadiskC},
+				ok:             []*ok.Client{okC},
 				docLinkMethods: []sendingMethod{plan.docLinkMethods[len(docs)]},
 			}
 			docs = append(docs, p)
@@ -111,6 +114,10 @@ func (e *executor) execute(plan sendingPlan) error {
 				return e.executeMethodYaDisk(encoded, yadiskC)
 			}
 
+			if method == methodOkStorage {
+				return e.executeMethodOkStorage(encoded, okC)
+			}
+
 			mf, err := e.methodToFunc(method)
 
 			if err != nil {
@@ -131,6 +138,7 @@ func (e *executor) execute(plan sendingPlan) error {
 			user := p.users[0]
 			imapC := p.imap[0]
 			yadiskC := p.yadisk[0]
+			okC := p.ok[0]
 			method := p.docLinkMethods[0]
 			f := func() error {
 				var mf executorStringFunc
@@ -143,6 +151,10 @@ func (e *executor) execute(plan sendingPlan) error {
 				} else if method == methodYaDisk {
 					mf = func(s string, c config.Club, u config.User) error {
 						return e.executeMethodYaDisk(s, yadiskC)
+					}
+				} else if method == methodOkStorage {
+					mf = func(s string, c config.Club, u config.User) error {
+						return e.executeMethodOkStorage(s, okC)
 					}
 				} else {
 					mf, err = e.methodToFunc(method)
@@ -509,6 +521,16 @@ func (e *executor) executeMethodIMAP(text string, imapC *imap.Client) error {
 
 func (e *executor) executeMethodYaDisk(text string, yadiskC *yadisk.Client) error {
 	_, err := yadiskC.Upload([]byte(text), "txt")
+
+	return err
+}
+
+func (e *executor) executeMethodOkStorage(text string, okC *ok.Client) error {
+	p := ok.StorageSetParams{
+		Key:   okC.StorageC.CreateSetKey(),
+		Value: text,
+	}
+	err := okC.StorageSet(p)
 
 	return err
 }

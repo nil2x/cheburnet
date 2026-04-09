@@ -10,6 +10,7 @@ import (
 	"github.com/nil2x/cheburnet/internal/api"
 	"github.com/nil2x/cheburnet/internal/config"
 	"github.com/nil2x/cheburnet/internal/imap"
+	"github.com/nil2x/cheburnet/internal/ok"
 	"github.com/nil2x/cheburnet/internal/session"
 	"github.com/nil2x/cheburnet/internal/yadisk"
 )
@@ -135,6 +136,67 @@ func ListenStorage(ctx context.Context, cfg config.Config, vkC *api.VKClient, st
 				evt := event{
 					name:         "storage",
 					source:       club.Name,
+					storageValue: resp.Value,
+				}
+
+				go func(evt event) {
+					if err := handleEvent(cfg, vkC, storageC, evt); err != nil {
+						slog.Error("handler: handle", "event", evt, "err", err)
+					}
+				}(evt)
+			}
+
+			sleep = 500 * time.Millisecond
+		}
+	}
+}
+
+// ListenOkStorage listens OK Storage for new datagrams and handles them.
+func ListenOkStorage(ctx context.Context, cfg config.Config, vkC *api.VKClient, storageC *api.StorageClient, okC *ok.Client) error {
+	params := ok.StorageGetParams{
+		Keys: okC.StorageC.CreateGetKeys(),
+	}
+	last, err := okC.StorageGet(params)
+
+	if err != nil {
+		return err
+	}
+
+	var sleep time.Duration
+
+	slog.Info("ok storage: listening", "name", okC.Name)
+
+	for {
+		select {
+		case <-ctx.Done():
+			return nil
+		case <-time.After(sleep):
+			if !session.IsOpened() {
+				sleep = 500 * time.Millisecond
+				continue
+			}
+
+			current, err := okC.StorageGet(params)
+
+			if err != nil {
+				slog.Error("ok storage: listen", "name", okC.Name, "err", err)
+				sleep = 5 * time.Second
+				continue
+			}
+
+			changed := okC.StorageC.DiffValues(last.Convert(), current.Convert())
+			last = current
+
+			for _, resp := range changed {
+				if resp.Value == "" {
+					continue
+				}
+
+				okC.StorageC.UpdateNamespace(resp.Value)
+
+				evt := event{
+					name:         "ok storage",
+					source:       okC.Name,
 					storageValue: resp.Value,
 				}
 

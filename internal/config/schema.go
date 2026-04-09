@@ -20,6 +20,7 @@ type Config struct {
 	Users   []User   `json:"users"`
 	IMAP    []IMAP   `json:"imap"`
 	YaDisk  []YaDisk `json:"yadisk"`
+	OK      []OK     `json:"ok"`
 }
 
 type Log struct {
@@ -147,6 +148,13 @@ type YaDisk struct {
 	Token  string `json:"token"`
 	Origin string `json:"origin"`
 	Root   string `json:"root"`
+}
+
+type OK struct {
+	Name      string `json:"name"`
+	PublicKey string `json:"publicKey"`
+	SecretKey string `json:"secretKey"`
+	Origin    string `json:"origin"`
 }
 
 type Address struct {

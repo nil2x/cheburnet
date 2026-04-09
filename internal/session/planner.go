@@ -8,6 +8,7 @@ import (
 	"github.com/nil2x/cheburnet/internal/config"
 	"github.com/nil2x/cheburnet/internal/datagram"
 	"github.com/nil2x/cheburnet/internal/imap"
+	"github.com/nil2x/cheburnet/internal/ok"
 	"github.com/nil2x/cheburnet/internal/transform"
 	"github.com/nil2x/cheburnet/internal/yadisk"
 )
@@ -31,6 +32,7 @@ const (
 	methodTopicComment
 	methodIMAP
 	methodYaDisk
+	methodOkStorage
 )
 
 var (
@@ -58,6 +60,7 @@ func initPlanner(cfg config.Config) {
 		methodTopicComment:  false && !cfg.API.Unathorized, // disabled, captcha control
 		methodIMAP:          imap.HaveClients(),
 		methodYaDisk:        yadisk.HaveClients(),
+		methodOkStorage:     ok.HaveClients(),
 	}
 	methodsMaxLenEncoded = map[sendingMethod]int{
 		methodMessage:       4096,
@@ -76,6 +79,7 @@ func initPlanner(cfg config.Config) {
 		methodTopicComment:  4096,
 		methodIMAP:          512 * 1024,
 		methodYaDisk:        1 * 1024 * 1024,
+		methodOkStorage:     4096,
 	}
 
 	for method, enabled := range cfg.Session.MethodsEnabled {
@@ -103,6 +107,7 @@ func initPlanner(cfg config.Config) {
 		methodTopicComment:  transform.Base85CharsetRU,
 		methodIMAP:          transform.Base85CharsetASCII,
 		methodYaDisk:        transform.Base85CharsetASCII,
+		methodOkStorage:     transform.Base85CharsetASCII,
 	}
 	methodsMaxLenPayload = map[sendingMethod]int{
 		methodMessage:       datagram.CalcMaxLenPayload(methodsMaxLenEncoded[methodMessage]),
@@ -121,6 +126,7 @@ func initPlanner(cfg config.Config) {
 		methodTopicComment:  datagram.CalcMaxLenPayload(methodsMaxLenEncoded[methodTopicComment]),
 		methodIMAP:          datagram.CalcMaxLenPayload(methodsMaxLenEncoded[methodIMAP]),
 		methodYaDisk:        datagram.CalcMaxLenPayload(methodsMaxLenEncoded[methodYaDisk]),
+		methodOkStorage:     datagram.CalcMaxLenPayload(methodsMaxLenEncoded[methodOkStorage]),
 	}
 }
 
@@ -133,6 +139,7 @@ type sendingPlan struct {
 	users          []config.User
 	imap           []*imap.Client
 	yadisk         []*yadisk.Client
+	ok             []*ok.Client
 	docLinkMethods []sendingMethod
 }
 
@@ -167,6 +174,10 @@ func (p sendingPlan) isInvalid() error {
 
 	if len(p.methods) != len(p.yadisk) {
 		return errors.New("methods and yadisk mismatch")
+	}
+
+	if len(p.methods) != len(p.ok) {
+		return errors.New("methods and ok mismatch")
 	}
 
 	methodDocCount := 0
@@ -228,6 +239,7 @@ func (p *planner) create(dg datagram.Datagram) (sendingPlan, error) {
 	plan.users = p.createUsers(plan.methods)
 	plan.imap = p.createIMAP(plan.methods)
 	plan.yadisk = p.createYaDisk(plan.methods)
+	plan.ok = p.createOk(plan.methods)
 
 	docLinkMethods, err := p.createDocLinkMethods(plan.methods)
 
@@ -279,7 +291,11 @@ func (p *planner) createPlan(dg datagram.Datagram, num int) (sendingPlan, error)
 	// methodStorage can't be used for CommandConnect because storage listener
 	// is not able to detect first command of the session.
 	if dg.Command != datagram.CommandConnect {
-		smallMethods = append(smallMethods, methodStorage, methodStorage)
+		smallMethods = append(
+			smallMethods,
+			methodStorage, methodStorage,
+			methodOkStorage, methodOkStorage,
+		)
 	}
 
 	smallMethods = filterOutDisabledMethods(smallMethods)
@@ -444,11 +460,27 @@ func (p *planner) createYaDisk(methods []sendingMethod) []*yadisk.Client {
 	return clients
 }
 
+func (p *planner) createOk(methods []sendingMethod) []*ok.Client {
+	clients := make([]*ok.Client, len(methods))
+
+	for i := range methods {
+		cfg := randElem(p.cfg.OK)
+		c, exists := ok.GetClient(cfg.Name)
+
+		if exists {
+			clients[i] = c
+		}
+	}
+
+	return clients
+}
+
 func (p *planner) createDocLinkMethods(methods []sendingMethod) ([]sendingMethod, error) {
 	available := []sendingMethod{
 		methodMessage,
 		methodPost,
 		methodStorage, methodStorage,
+		methodOkStorage, methodOkStorage,
 		methodDescription,
 		methodWebsite,
 		methodCaption,

@@ -209,6 +209,20 @@ func Validate(cfg Config) error {
 		}
 	}
 
+	for _, ok := range cfg.OK {
+		if ok.Name == "" {
+			return errors.New("ok.name is missing")
+		}
+
+		if ok.PublicKey == "" {
+			return errors.New("ok.publicKey is missing")
+		}
+
+		if ok.SecretKey == "" {
+			return errors.New("ok.secretKey is missing")
+		}
+	}
+
 	if len(cfg.Session.SecretKey) == 0 {
 		return errors.New("session.secret is missing")
 	}

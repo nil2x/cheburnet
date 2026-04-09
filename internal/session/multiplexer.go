@@ -13,6 +13,7 @@ import (
 	"github.com/nil2x/cheburnet/internal/config"
 	"github.com/nil2x/cheburnet/internal/datagram"
 	"github.com/nil2x/cheburnet/internal/imap"
+	"github.com/nil2x/cheburnet/internal/ok"
 	"github.com/nil2x/cheburnet/internal/yadisk"
 )
 
@@ -148,6 +149,7 @@ func (m *multiplexer) merge(plans []sendingPlan) (sendingPlan, error) {
 					users:          []config.User{},
 					imap:           []*imap.Client{},
 					yadisk:         []*yadisk.Client{},
+					ok:             []*ok.Client{},
 					docLinkMethods: []sendingMethod{},
 				}
 				byMethodMeta[method] = []metadata{}
@@ -160,6 +162,7 @@ func (m *multiplexer) merge(plans []sendingPlan) (sendingPlan, error) {
 			grouped.users = append(grouped.users, plan.users[i])
 			grouped.imap = append(grouped.imap, plan.imap[i])
 			grouped.yadisk = append(grouped.yadisk, plan.yadisk[i])
+			grouped.ok = append(grouped.ok, plan.ok[i])
 			byMethod[method] = grouped
 
 			meta := metadata{
@@ -272,6 +275,7 @@ func (m *multiplexer) merge(plans []sendingPlan) (sendingPlan, error) {
 		users:          []config.User{},
 		imap:           []*imap.Client{},
 		yadisk:         []*yadisk.Client{},
+		ok:             []*ok.Client{},
 		docLinkMethods: []sendingMethod{},
 	}
 
@@ -297,6 +301,7 @@ func (m *multiplexer) merge(plans []sendingPlan) (sendingPlan, error) {
 			merged.users = append(merged.users, randElem(byMethod[method].users))
 			merged.imap = append(merged.imap, randElem(byMethod[method].imap))
 			merged.yadisk = append(merged.yadisk, randElem(byMethod[method].yadisk))
+			merged.ok = append(merged.ok, randElem(byMethod[method].ok))
 
 			if method == methodDoc {
 				merged.docLinkMethods = append(merged.docLinkMethods, randElem(byMethod[methodDoc].docLinkMethods))

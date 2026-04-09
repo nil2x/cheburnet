@@ -2,6 +2,7 @@ package transform
 
 import (
 	"bytes"
+	"crypto/md5"
 	"fmt"
 )
 
@@ -10,6 +11,11 @@ import (
 //	{8, 16, 255} -> "08 10 ff"
 func BytesToHex(b []byte) string {
 	return fmt.Sprintf("% x", b)
+}
+
+// BytesToMD5 returns the MD5 hash of the given bytes.
+func BytesToMD5(b []byte) string {
+	return fmt.Sprintf("%x", md5.Sum(b))
 }
 
 // BytesToChunks splits slice into sub-slices.
